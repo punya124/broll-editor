@@ -1,0 +1,68 @@
+[
+  {
+    "title": "Escape the 'Degree-to-Job' Trap: How to Pivot When Your CS Education Feels Like a Lie",
+    "target_audience": "US-based CS students/recent grads suffering from Imposter Syndrome and entry-level market anxiety.",
+    "primary_keyword": "CS entry-level career strategy",
+    "lsi_keywords": [
+      "bridging the skill gap",
+      "CS portfolio building"
+    ],
+    "outline": {
+      "introduction": "Validate the frustration of graduating top-of-class yet feeling incompetent; address the 'degree vs. market reality' gap.",
+      "section_1": "Myth-Busting: Why your GPA matters less than your 'ship-to-production' velocity.",
+      "section_2": "The 3-Phase Blueprint: From theoretical project work to high-impact professional repositories.",
+      "section_3": "Before-and-After: Resum\u00e9 transformation, converting academic projects into business-value bullet points."
+    },
+    "tone": "Unfiltered, highly practical, peer-to-peer, constructive",
+    "banned_attributes": [
+      "corporate fluff",
+      "generic platitudes about 'working hard'",
+      "AI-generated buzzwords"
+    ],
+    "internal_linking_note": "Link to a 'Custom Resume Audit Checklist' at the end to move users into the conversion/retention funnel."
+  },
+  {
+    "title": "Beyond WITCH: How to Evaluate Your First Software Engineering Offer Without Selling Your Soul",
+    "target_audience": "Entry-level developers deciding between corporate legacy firms and high-growth tech roles.",
+    "primary_keyword": "software engineering career planning",
+    "lsi_keywords": [
+      "tech stack relevance",
+      "career trajectory in tech"
+    ],
+    "outline": {
+      "introduction": "Acknowledge the fear of settling for 'safe' but stagnant roles like WITCH vs. the risk of specialized banking/startup roles.",
+      "section_1": "Conceptual Reality Check: Long-term compounding career interest vs. immediate paycheck security.",
+      "section_2": "The Decision Framework: A weighted scorecard for evaluating stacks, mentorship, and exit opportunities.",
+      "section_3": "Scripting the Negotiation: How to interview your potential manager to identify 'growth vs. dead-end' roles."
+    },
+    "tone": "Direct, analytical, mentorship-oriented, unfiltered",
+    "banned_attributes": [
+      "promotional bias toward specific bootcamps",
+      "vague career advice",
+      "corporate jargon"
+    ],
+    "internal_linking_note": "Link to a 'Company Research Spreadsheet' template to guide the user's vetting process."
+  },
+  {
+    "title": "Solo-Project Strategy: How to Turn Your Final-Year 'Doom' into a Killer Portfolio Piece",
+    "target_audience": "Computer Science seniors forced into solo projects who feel 'cooked' and overwhelmed.",
+    "primary_keyword": "computer science final year projects",
+    "lsi_keywords": [
+      "portfolio project development",
+      "technical project management"
+    ],
+    "outline": {
+      "introduction": "Reframing the solo project from a 'burden' to a 'full-stack demonstration' that outshines team-based group projects.",
+      "section_1": "Myth-Busting: Why 'solo' means you have full ownership, and why that\u2019s a recruiters' dream.",
+      "section_2": "The 30-Day Execution Framework: MVP design, CI/CD pipeline basics, and documentation standards.",
+      "section_3": "Case Study: Reframing a basic project as an 'Engineering Challenge' to highlight problem-solving under pressure."
+    },
+    "tone": "Empathetic, highly actionable, strategic, no-nonsense",
+    "banned_attributes": [
+      "advice on cheating or academic shortcuts",
+      "overly simplistic tutorials",
+      "condescending language"
+    ],
+    "internal_linking_note": "Link to a 'GitHub ReadMe Template' to incentivize users to publish their work immediately."
+  }
+]
