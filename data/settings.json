@@ -1,0 +1,7 @@
+{
+  "library_folder": "/Users/punyagalundia/Documents/Broll content library",
+  "gemini_model": "gemini-3.1-flash-lite",
+  "embedding_model": "gemini-embedding-001",
+  "match_threshold": 50,
+  "api_key_env": "GEMINI_API_KEY"
+}
