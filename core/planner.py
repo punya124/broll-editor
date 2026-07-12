@@ -10,6 +10,6 @@ def build_shot_plan(script_text: str, audio_path, gemini_client) -> list:
         missing = REQUIRED_KEYS - set(shot.keys())
         for key in missing:
             shot[key] = {} if key in ("required", "preferred", "fallback") else ""
-        shot["duration"] = float(shot.get("duration") or 2.0)
+        shot["duration"] = min(float(shot.get("duration") or 2.0), 3.0)
 
     return shots

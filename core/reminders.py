@@ -32,24 +32,24 @@ def add_apple_reminder(title, notes="", list_name="Reminders"):
 
 
 def add_missing_footage_reminders(missing_shots, list_name="B-Roll To Film"):
-    """Takes the `missing` list from timeline.select_clips and adds one
-    Apple Reminder per shot describing what footage needs to be filmed."""
     added = 0
-    for shot in missing_shots:
-        purpose = shot.get("purpose", "Untitled shot")
-        duration = shot.get("duration", "?")
-        required = shot.get("required", {})
-        preferred = shot.get("preferred", {})
-
-        notes_lines = [f"Duration: {duration}s"]
-        if required:
-            notes_lines.append(f"Required: {required}")
-        if preferred:
-            notes_lines.append(f"Preferred: {preferred}")
-
-        title = f"Film: {purpose}"
-        notes = "\n".join(notes_lines)
-
+    for item in missing_shots:
+        shot = item["shot"]  # missing entries are now {"index":.., "shot":..}
+        title, notes = shot_to_reminder_fields(shot)
         if add_apple_reminder(title=title, notes=notes, list_name=list_name):
             added += 1
     return added
+
+def shot_to_reminder_fields(shot):
+    purpose = shot.get("purpose", "Untitled shot")
+    duration = shot.get("duration", "?")
+    required = shot.get("required", {})
+    preferred = shot.get("preferred", {})
+
+    notes_lines = [f"Duration: {duration}s"]
+    if required:
+        notes_lines.append(f"Required: {required}")
+    if preferred:
+        notes_lines.append(f"Preferred: {preferred}")
+
+    return f"Film: {purpose}", "\n".join(notes_lines)

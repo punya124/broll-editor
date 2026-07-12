@@ -2,14 +2,21 @@ import os
 import json
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+
 # core/config.py -> project root is one level up from core/
 APP_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(APP_DIR / ".env")
+
 DATA_DIR = APP_DIR / "data"
 PROJECTS_DIR = DATA_DIR / "projects"
 CACHE_DIR = DATA_DIR / "cache"
 UPLOADS_DIR = DATA_DIR / "uploads"
 OUTPUTS_DIR = DATA_DIR / "outputs"
 SETTINGS_PATH = DATA_DIR / "settings.json"
+
 
 DEFAULT_SETTINGS = {
     "library_folder": "",

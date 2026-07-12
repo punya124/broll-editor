@@ -22,6 +22,8 @@ STRICT RULES:
   "a laptop on a desk").
 - Each shot needs a duration in seconds that roughly matches the pacing of the narration
   at that point in the audio.
+- No single shot may be longer than 3 seconds. If a narration segment needs more time,
+  split it into multiple shots of 3 seconds or less rather than one long shot.
 
 Return ONLY valid JSON, a list of shot objects, with this exact structure and nothing else
 (no markdown fences, no commentary):

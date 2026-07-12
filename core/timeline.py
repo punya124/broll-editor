@@ -14,6 +14,44 @@ def compute_trim(clip_duration: float, need_duration: float):
 
 
 def select_clips(shots, clips_with_meta, embed_text_fn, threshold=85):
+    assignments = []
+    missing = []
+    embedding_cache = {}
+    used_paths = set()
+
+    for idx, shot in enumerate(shots):
+        candidates = matcher.find_best_matches(
+            shot, clips_with_meta, embed_text_fn, embedding_cache, top_n=5
+        )
+
+        chosen = None
+        for path, meta, score in candidates:
+            if score < threshold:
+                continue
+            if str(path) not in used_paths:
+                chosen = (path, meta, score)
+                break
+        if chosen is None and candidates and candidates[0][2] >= threshold:
+            chosen = candidates[0]
+
+        if chosen is None:
+            missing.append({"index": idx, "shot": shot})
+            continue
+
+        path, meta, score = chosen
+        used_paths.add(str(path))
+        duration = meta.get("duration_seconds") or probe_duration(path)
+        start, end = compute_trim(duration, shot["duration"])
+        assignments.append({
+            "index": idx,
+            "shot": shot,
+            "clip_path": str(path),
+            "score": score,
+            "trim_start": start,
+            "trim_end": end,
+        })
+
+    return assignments, missing
     """For each shot, find the best-matching unused clip above `threshold`.
     Returns (assignments, missing) where `missing` is the list of shots that
     couldn't be filled from the library."""

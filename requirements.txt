@@ -1,2 +1,4 @@
 flask
 google-genai
+requests
+python-dotenv
