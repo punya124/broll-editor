@@ -16,6 +16,7 @@ CACHE_DIR = DATA_DIR / "cache"
 UPLOADS_DIR = DATA_DIR / "uploads"
 OUTPUTS_DIR = DATA_DIR / "outputs"
 SETTINGS_PATH = DATA_DIR / "settings.json"
+ACTIVE_UPLOADS = set()
 
 
 DEFAULT_SETTINGS = {
@@ -48,6 +49,47 @@ def save_settings(settings: dict):
     ensure_dirs()
     with open(SETTINGS_PATH, "w") as f:
         json.dump(settings, f, indent=2)
+
+
+def mark_upload_active(path):
+    try:
+        ACTIVE_UPLOADS.add(Path(path).resolve())
+    except Exception:
+        pass
+
+
+def unmark_upload_active(path):
+    try:
+        ACTIVE_UPLOADS.discard(Path(path).resolve())
+    except Exception:
+        pass
+
+
+def prune_uploads(limit=3, active_paths=None):
+    ensure_dirs()
+    active_paths = set(active_paths or ACTIVE_UPLOADS)
+    active_resolved = set()
+    for path in active_paths:
+        try:
+            active_resolved.add(Path(path).resolve())
+        except Exception:
+            continue
+
+    candidates = [path for path in UPLOADS_DIR.iterdir() if path.is_file()]
+    if len(candidates) <= limit:
+        return
+
+    inactive_paths = [path for path in candidates if path.resolve() not in active_resolved]
+    inactive_paths.sort(key=lambda path: path.stat().st_mtime)
+    while len(inactive_paths) > 0 and len(candidates) > limit:
+        path = inactive_paths.pop(0)
+        if path.resolve() in active_resolved:
+            continue
+        try:
+            path.unlink(missing_ok=True)
+        except Exception:
+            continue
+        candidates.remove(path)
 
 
 def get_api_key(settings=None) -> str:

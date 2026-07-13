@@ -33,7 +33,6 @@ def _render_and_finish(job_id):
             for a in assignments
         ],
     }
-    Path(state["audio_path"]).unlink(missing_ok=True)
 
 
 def _log(job_id, message):
@@ -107,6 +106,8 @@ def project_generate():
     job_id = str(uuid.uuid4())
     audio_path = config.UPLOADS_DIR / f"{job_id}_{audio_file.filename}"
     audio_file.save(audio_path)
+    config.mark_upload_active(audio_path)
+    config.prune_uploads(limit=3)
 
     JOBS[job_id] = {"status": "running", "log": [], "result": None, "error": None}
 
@@ -146,7 +147,6 @@ def project_generate():
             if missing:
                 JOBS[job_id]["status"] = "missing_footage"
                 JOBS[job_id]["result"] = {"missing": missing}
-                reminders.add_missing_footage_reminders(missing)
                 return
 
             _log(job_id, "Rendering...")
@@ -154,58 +154,9 @@ def project_generate():
         except Exception as e:
             JOBS[job_id]["status"] = "error"
             JOBS[job_id]["error"] = str(e)
-            Path(audio_path).unlink(missing_ok=True)
-        try:
-            client = GeminiClient(settings)
-
-            _log(job_id, "Making sure the library is up to date...")
-            library.ensure_analyzed(folder, client, log=lambda m: _log(job_id, m))
-
-            _log(job_id, "Generating shot plan...")
-            shots = planner.build_shot_plan(script_text, audio_path, client)
-
-            _log(job_id, "Searching library...")
-            clips = library.scan_library(folder)
-            clips_with_meta = []
-            for c in clips:
-                meta = library.load_metadata(c)
-                if meta:
-                    clips_with_meta.append((c, meta))
-
-            _log(job_id, "Validating coverage...")
-            threshold = float(settings.get("match_threshold", 85))
-            assignments, missing = timeline.select_clips(
-                shots, clips_with_meta, client.embed_text, threshold=threshold
-            )
-
-            if missing:
-                JOBS[job_id]["status"] = "missing_footage"
-                JOBS[job_id]["result"] = {"missing": missing}
-                reminders.add_missing_footage_reminders(missing)
-                return
-
-            _log(job_id, "Rendering...")
-            output_path = config.OUTPUTS_DIR / f"{job_id}.mp4"
-            timeline.render_video(assignments, audio_path, output_path)
-
-            _log(job_id, "Done.")
-            JOBS[job_id]["status"] = "done"
-            JOBS[job_id]["result"] = {
-                "video_url": f"/api/project/download/{job_id}.mp4",
-                "assignments": [
-                    {
-                        "purpose": a["shot"].get("purpose"),
-                        "clip": Path(a["clip_path"]).name,
-                        "score": round(a["score"], 1),
-                    }
-                    for a in assignments
-                ],
-            }
-        except Exception as e:
-            JOBS[job_id]["status"] = "error"
-            JOBS[job_id]["error"] = str(e)
         finally:
-            audio_path.unlink(missing_ok=True)
+            config.unmark_upload_active(audio_path)
+            config.prune_uploads(limit=3)
 
     threading.Thread(target=worker, daemon=True).start()
     return jsonify({"job_id": job_id})

@@ -9,32 +9,44 @@ from . import config
 SHOT_PLAN_SYSTEM_INSTRUCTION = """You are an experienced short-form video editor building a
 B-roll shot plan for a vertical Instagram Reel.
 
-You will be given a script and a voiceover audio recording. Break the voiceover into
-sequential B-roll shots that visually support the narration, covering its full duration
-with no gaps.
+IMPORTANT CONTEXT: This video will contain ONLY B-roll footage playing under the voiceover.
+There is no talking-head shot of the narrator, no on-camera host, no interview setup —
+just a continuous sequence of B-roll clips synced to the audio from start to finish.
+
+Listen to the audio carefully and follow its actual pacing, emphasis, and sentence breaks —
+don't just divide the total duration evenly. Start a new shot at natural beat changes in the
+narration: a new sentence, a new idea, a change in tone, a listed item, a transition word.
+
+For each shot, give an exact start_seconds and end_seconds timestamp anchored to the audio
+(e.g. the first shot starts at 0.0). Shots must be contiguous and non-overlapping — each
+shot's start_seconds must exactly equal the previous shot's end_seconds. No single shot may
+span more than 3 seconds (end_seconds - start_seconds <= 3.0); split longer narration
+segments into multiple consecutive shots instead.
 
 STRICT RULES:
 - Only request real-world camera footage: people, places, objects, actions, environments.
 - NEVER request screenshots, UI recordings, screen recordings, text overlays, captions,
-  graphics, charts, or animations. Those are added later in post-production.
-- Describe the PURPOSE and MEANING of each shot rather than one exact literal subject,
-  whenever possible (e.g. "footage communicating focus and productivity" rather than
-  "a laptop on a desk").
-- Each shot needs a duration in seconds that roughly matches the pacing of the narration
-  at that point in the audio.
-- No single shot may be longer than 3 seconds. If a narration segment needs more time,
-  split it into multiple shots of 3 seconds or less rather than one long shot.
+  graphics, charts, or animations.
+- Each shot should represent ONE clear, simple visual idea a stock footage search could
+  realistically find.
+- Describe the PURPOSE and MEANING of each shot in the `purpose` field, but make
+  `required`/`preferred`/`fallback` concrete and visual, not abstract.
 
-Return ONLY valid JSON, a list of shot objects, with this exact structure and nothing else
-(no markdown fences, no commentary):
+For every shot, include a `pexels_search_terms` field: 2-4 short, concrete keywords (not
+sentences, not abstract concepts) for a stock footage search. Example: ["man", "typing",
+"laptop"]. Bad: ["a shift from passive learning to active creation"].
+
+Return ONLY valid JSON, a list of shot objects, nothing else (no markdown fences):
 
 [
   {
-    "duration": 2.4,
+    "start_seconds": 0.0,
+    "end_seconds": 2.4,
     "purpose": "short human description of the narrative purpose of this moment",
     "required": {"communicates": ["idea1", "idea2"]},
     "preferred": {"primary_action": ["action1"]},
-    "fallback": {"primary_action": ["action2"]}
+    "fallback": {"primary_action": ["action2"]},
+    "pexels_search_terms": ["keyword1", "keyword2", "keyword3"]
   }
 ]
 """
@@ -122,12 +134,19 @@ class GeminiClient:
             except Exception:
                 pass
 
-    def generate_shot_plan(self, script_text: str, audio_path) -> list:
+    def generate_shot_plan(self, script_text: str, audio_path, audio_duration=None) -> list:
         uploaded = self._upload_and_wait(audio_path)
         try:
+            duration_hint = (
+                f"\n\nThe audio is exactly {audio_duration:.2f} seconds long. Your shots' "
+                f"start_seconds/end_seconds must cover exactly 0.00 to {audio_duration:.2f} "
+                f"with no gaps or overlaps."
+                if audio_duration is not None else ""
+            )
             prompt = (
                 f"Script:\n{script_text}\n\n"
                 "Build the shot plan from the voiceover audio and script above."
+                f"{duration_hint}"
             )
             response = self.client.models.generate_content(
                 model=self.model_name,
@@ -135,8 +154,12 @@ class GeminiClient:
                 config=types.GenerateContentConfig(
                     system_instruction=SHOT_PLAN_SYSTEM_INSTRUCTION,
                     response_mime_type="application/json",
+                    max_output_tokens=65536,
                 ),
             )
+            finish_reason = response.candidates[0].finish_reason if response.candidates else None
+            if str(finish_reason) == "MAX_TOKENS":
+                print("WARNING: shot plan generation hit the token limit and was cut off.")
             return self._parse_json(response.text)
         finally:
             try:
