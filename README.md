@@ -52,7 +52,7 @@ endpoint for progress — no websockets needed.
    ```bash
    python app.py
    ```
-   Then open **http://localhost:5050** in your browser.
+   Then open **http://localhost:8080** in your browser.
 
 ## Using it
 
