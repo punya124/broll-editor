@@ -1,58 +1,92 @@
 [
   {
-    "title": "Mastering the Technical Interview: A Blueprint for CS Students",
-    "persona": "Senior Software Architect & Tech Recruiter",
-    "target_audience": "Ambitious US CS students struggling with high-stakes technical interviews and the fear of AI-driven job market shifts.",
-    "seo_keywords": {
-      "primary": "technical interview preparation for software engineers",
-      "lsi_1": "coding interview strategies",
-      "lsi_2": "passing the SWE internship interview"
-    },
-    "tone": [
-      "unfiltered",
-      "highly practical",
-      "peer-to-peer",
-      "constructive"
-    ],
-    "structure": {
-      "introduction": "Acknowledge the 'imposter syndrome' and anxiety surrounding the current state of technical hiring; validate the frustration of grinding LeetCode only to feel unprepared for the nuance of real-world interviews.",
-      "section_1": "The Reality Check: Debunking the myth that AI will replace the need for fundamental engineering logic; discuss why interviewers prioritize problem-solving over syntax memory.",
-      "section_2": "The Practical Blueprint: A 3-step framework\u2014First, master mental modeling for systems; Second, learn the 'Think Aloud' protocol; Third, leverage peer-mock interviews to stress-test your communication under pressure.",
-      "section_3": "Before-and-After: Provide a script transformation\u2014show how a candidate responding with 'silence and code' (Before) vs. a candidate using 'discovery questions and architectural trade-offs' (After) changes the hireability score."
-    },
-    "banned_content": [
-      "corporate fluff",
-      "generic career advice",
-      "platitudes about hard work",
-      "vague motivational language"
-    ]
+    "title": "Beyond the Commit Count: Why Your Output Isn't Getting You Promoted",
+    "persona": "Tech Recruiter and Senior Software Architect",
+    "target_audience": "Ambitious US CS students and junior devs struggling with career progression and recognition.",
+    "outline": {
+      "introduction": "Address the frustration of the 'top contributor' paradox: why shipping the most code often leads to burnout rather than a promotion.",
+      "section_1": "Myth-Busting: Debunk the 'code volume = value' fallacy and explain why impact-driven engineering is the only currency that matters.",
+      "section_2": "The Practical Blueprint: A 3-step framework for aligning your daily tasks with business objectives rather than just JIRA tickets.",
+      "section_3": "Before-and-After: Contrast a standard 'Task-Focused' engineer update vs. an 'Impact-Focused' update that triggers promotion conversations.",
+      "seo": {
+        "primary_keyword": "software engineering career growth",
+        "lsi_keywords": [
+          "promotion criteria for software engineers",
+          "impact-driven software development"
+        ]
+      },
+      "tone": [
+        "Unfiltered",
+        "Highly Practical",
+        "Peer-to-Peer",
+        "Constructive"
+      ],
+      "banned_attributes": [
+        "corporate fluff",
+        "generic advice",
+        "inspirational quotes",
+        "tech-bro jargon"
+      ]
+    }
   },
   {
-    "title": "Navigating the AI Coding Shift: How to Remain Indispensable as a Developer",
-    "persona": "Senior Software Architect & Tech Recruiter",
-    "target_audience": "Junior developers and CS students worried about AI tools like Claude or Copilot devaluing traditional entry-level software development roles.",
-    "seo_keywords": {
-      "primary": "future of software engineering jobs",
-      "lsi_1": "AI tools for developers",
-      "lsi_2": "coding career path in the age of AI"
-    },
-    "tone": [
-      "unfiltered",
-      "highly practical",
-      "peer-to-peer",
-      "constructive"
-    ],
-    "structure": {
-      "introduction": "Directly address the panic caused by AI-assisted coding; validate the concern that entry-level barriers are rising as AI automates 'scripting' tasks.",
-      "section_1": "The Conceptual Reality: Distinguish between 'writing code' (commodity) and 'solving business problems through architecture' (the actual job); why senior engineers aren't worried, and why juniors shouldn't be either.",
-      "section_2": "The Practical Blueprint: Strategy for 'AI-Augmented Development'\u2014treating AI as a junior pair programmer, focus on verifying logic rather than generating it, and double-down on testing, system design, and security.",
-      "section_3": "Concrete Examples: A side-by-side comparison of a dev who relies on AI for boilerplate (risk) versus a dev who uses AI as a tool to accelerate architectural iteration (career-growth)."
-    },
-    "banned_content": [
-      "corporate fluff",
-      "generic career advice",
-      "fear-mongering",
-      "sugar-coated industry outlooks"
-    ]
+    "title": "Navigating the New Hiring Reality: How to Land Roles in a Post-2022 Market",
+    "persona": "Tech Recruiter and Senior Software Architect",
+    "target_audience": "CS graduates and junior software engineers facing the brutal reality of an saturated, high-barrier job market.",
+    "outline": {
+      "introduction": "Acknowledge the 'golden age' myth of 2-round interview cycles and validate the exhaustion of the current long-form interview gauntlet.",
+      "section_1": "Reality Check: Why the bar has moved from 'can you code' to 'can you prove you won't need hand-holding' in the current economy.",
+      "section_2": "The Practical Blueprint: A reverse-engineering approach to landing referrals and bypassing the 'black hole' ATS systems.",
+      "section_3": "Scripts: Actionable templates for reaching out to internal engineers for referrals without sounding like a desperate job seeker.",
+      "seo": {
+        "primary_keyword": "getting a software engineering job",
+        "lsi_keywords": [
+          "tech job market trends 2025",
+          "networking for software developers"
+        ]
+      },
+      "tone": [
+        "Unfiltered",
+        "Highly Practical",
+        "Peer-to-Peer",
+        "Constructive"
+      ],
+      "banned_attributes": [
+        "corporate fluff",
+        "generic advice",
+        "empty motivation",
+        "pessimistic doom-posting"
+      ]
+    }
+  },
+  {
+    "title": "The First Two Years: Staying Relevant When Software Evolution Outpaces You",
+    "persona": "Senior Software Architect",
+    "target_audience": "Entry-level developers and recent CSE graduates feeling lost between training institutes and the professional workforce.",
+    "outline": {
+      "introduction": "Address the feeling of obsolescence when your CS degree feels disconnected from the rapidly shifting demands of real-world software evolution.",
+      "section_1": "Conceptual Reality: Distinguish between 'learning a syntax' (useless long-term) and 'learning systems thinking' (the only job-proof skill).",
+      "section_2": "The Practical Blueprint: How to build a personal R&D cycle that keeps your skills sharp without falling for the 'tutorial hell' trap.",
+      "section_3": "Case Studies: Comparing the long-term career trajectory of a 'software training institute' graduate vs. a self-directed systems thinker.",
+      "seo": {
+        "primary_keyword": "software engineering career roadmap",
+        "lsi_keywords": [
+          "staying relevant in tech",
+          "systems thinking for developers"
+        ]
+      },
+      "tone": [
+        "Unfiltered",
+        "Highly Practical",
+        "Peer-to-Peer",
+        "Constructive"
+      ],
+      "banned_attributes": [
+        "corporate fluff",
+        "generic advice",
+        "oversimplification",
+        "buzzword stuffing"
+      ]
+    }
   }
 ]
