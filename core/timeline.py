@@ -1,8 +1,10 @@
 import subprocess
+from turtle import width
 
 from . import matcher
 from .library import probe_duration
 
+MAX_SLOWDOWN = 0.5  # never slow a clip more than 50%
 
 def compute_trim(clip_duration: float, need_duration: float):
     """Center trim: take the middle `need_duration` seconds of the clip so
@@ -12,6 +14,37 @@ def compute_trim(clip_duration: float, need_duration: float):
     start = (clip_duration - need_duration) / 2.0
     return start, start + need_duration
 
+def fit_clips_to_duration(duration_needed, clip_infos):
+    """clip_infos: ordered list of (path, clip_duration) candidates.
+    Returns a list of {'path', 'trim_start', 'trim_end', 'speed'} segments
+    that together fill duration_needed — trimming if a clip is long enough,
+    modestly slowing it down if it's a bit short, and pulling in additional
+    clips if one clip alone can't reach the target without excessive slowdown."""
+    plan = []
+    remaining = duration_needed
+
+    for path, clip_duration in clip_infos:
+        if remaining <= 0.01:
+            break
+
+        if clip_duration >= remaining:
+            start, end = compute_trim(clip_duration, remaining)
+            plan.append({"path": path, "trim_start": start, "trim_end": end, "speed": 1.0})
+            remaining = 0
+            continue
+
+        slowdown_needed = remaining / clip_duration - 1.0
+        if slowdown_needed <= MAX_SLOWDOWN:
+            speed = clip_duration / remaining  # <1.0 = play slower
+            plan.append({"path": path, "trim_start": 0.0, "trim_end": clip_duration, "speed": speed})
+            remaining = 0
+        else:
+            capped_duration = clip_duration * (1 + MAX_SLOWDOWN)
+            speed = clip_duration / capped_duration
+            plan.append({"path": path, "trim_start": 0.0, "trim_end": clip_duration, "speed": speed})
+            remaining -= capped_duration
+
+    return plan, max(0.0, remaining)  # remaining > 0 = still short after all candidates
 
 def select_clips(shots, clips_with_meta, embed_text_fn, threshold=85):
     assignments = []
@@ -113,9 +146,12 @@ def render_video(assignments, audio_path, output_path, width=1080, height=1920, 
             "-i", a["clip_path"],
         ]
         label = f"v{i}"
+        speed = a.get("speed", 1.0)
+        pts_multiplier = 1.0 / speed if speed != 1.0 else 1.0
+        speed_filter = f",setpts={pts_multiplier:.4f}*PTS" if speed != 1.0 else ""
         filter_parts.append(
             f"[{i}:v]scale={width}:{height}:force_original_aspect_ratio=increase,"
-            f"crop={width}:{height},setsar=1,fps={fps}[{label}]"
+            f"crop={width}:{height},setsar=1{speed_filter},fps={fps}[{label}]"
         )
         concat_labels.append(f"[{label}]")
 

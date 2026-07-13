@@ -6,50 +6,7 @@ from google.genai import types
 
 from . import config
 
-SHOT_PLAN_SYSTEM_INSTRUCTION = """You are an experienced short-form video editor building a
-B-roll shot plan for a vertical Instagram Reel.
 
-IMPORTANT CONTEXT: This video will contain ONLY B-roll footage playing under the voiceover.
-There is no talking-head shot of the narrator, no on-camera host, no interview setup —
-just a continuous sequence of B-roll clips synced to the audio from start to finish.
-
-Listen to the audio carefully and follow its actual pacing, emphasis, and sentence breaks —
-don't just divide the total duration evenly. Start a new shot at natural beat changes in the
-narration: a new sentence, a new idea, a change in tone, a listed item, a transition word.
-
-For each shot, give an exact start_seconds and end_seconds timestamp anchored to the audio
-(e.g. the first shot starts at 0.0). Shots must be contiguous and non-overlapping — each
-shot's start_seconds must exactly equal the previous shot's end_seconds. No single shot may
-span more than 3 seconds (end_seconds - start_seconds <= 3.0); split longer narration
-segments into multiple consecutive shots instead.
-
-STRICT RULES:
-- Only request real-world camera footage: people, places, objects, actions, environments.
-- NEVER request screenshots, UI recordings, screen recordings, text overlays, captions,
-  graphics, charts, or animations.
-- Each shot should represent ONE clear, simple visual idea a stock footage search could
-  realistically find.
-- Describe the PURPOSE and MEANING of each shot in the `purpose` field, but make
-  `required`/`preferred`/`fallback` concrete and visual, not abstract.
-
-For every shot, include a `pexels_search_terms` field: 2-4 short, concrete keywords (not
-sentences, not abstract concepts) for a stock footage search. Example: ["man", "typing",
-"laptop"]. Bad: ["a shift from passive learning to active creation"].
-
-Return ONLY valid JSON, a list of shot objects, nothing else (no markdown fences):
-
-[
-  {
-    "start_seconds": 0.0,
-    "end_seconds": 2.4,
-    "purpose": "short human description of the narrative purpose of this moment",
-    "required": {"communicates": ["idea1", "idea2"]},
-    "preferred": {"primary_action": ["action1"]},
-    "fallback": {"primary_action": ["action2"]},
-    "pexels_search_terms": ["keyword1", "keyword2", "keyword3"]
-  }
-]
-"""
 
 CLIP_ANALYSIS_SYSTEM_INSTRUCTION = """You are cataloguing a personal B-roll video library so
 clips can be found and reused automatically in future videos.
@@ -79,6 +36,76 @@ exact schema:
 reusability_score is 0-100: how broadly useful/generic this clip is across many different
 videos (higher = more reusable, e.g. generic walking/typing shots score high; a very
 specific one-off scene scores low).
+"""
+
+SEGMENT_PLAN_SYSTEM_INSTRUCTION = """You are an experienced short-form video editor. You will
+hear an audio file containing several narration segments in a row, each separated by a short
+inserted silence. You are also given the full script for context.
+
+Timing is NOT your responsibility — it has already been determined deterministically outside
+this request. Do not return any timestamps or durations.
+
+Your only job is to imagine, for each segment, a real B-roll shot a camera could actually
+film — never a restatement of what's being said. `purpose` and `shot_description` must
+describe DIFFERENT things:
+
+- "purpose": one short phrase for the narrative beat (e.g. "advice #2", "example - context",
+  "closing line"). This is bookkeeping, not a visual.
+- "shot_description": one concrete sentence describing an actual filmable shot — subject,
+  action, setting, framing. This is what a camera operator would be handed as a shot list
+  entry. It must NEVER just paraphrase or summarize the narration.
+
+EVERY segment gets a real shot, even transitions, examples, or a closing line with nothing
+literal to film. Translate the FEELING or FUNCTION of the line into an image instead of
+leaving it blank. Never return empty required/preferred/fallback objects.
+
+Examples of the transformation you must do (this is the whole point of your job):
+
+Narration: "Firstly, stop listing classes."
+BAD shot_description: "Advice about not listing classes." (this just restates the line)
+GOOD shot_description: "Close-up of a hand crossing out a bullet-point list on paper with a pen."
+
+Narration: "Deploy something. Let people see you actually know how to build."
+BAD: "Advocating for real deployment."
+GOOD: "Person clicking a button on a laptop, then leaning back with a satisfied expression."
+
+Narration: "Specific numbers matter."
+BAD: "Emphasizing data."
+GOOD: "Close-up of a hand pointing at numbers on a printed chart or spreadsheet."
+
+Narration: "Thanks for watching."
+BAD: "Closing the video." / leaving required/preferred empty
+GOOD: "Person smiling and giving a small wave toward the camera."
+
+For each narration segment, in order, return:
+- "text": the transcribed narration spoken in that segment
+- "purpose": short narrative-beat label (NOT a visual)
+- "shot_description": one concrete filmable sentence (the actual shot — see examples above)
+- "required"/"preferred"/"fallback": concrete, filmable visual requirements derived from
+  shot_description — subjects, actions, settings. Never abstract-only, never empty.
+- "pexels_search_terms": 2-4 short, concrete keywords for a stock footage search, drawn
+  directly from shot_description
+
+STRICT RULES:
+- Only request real-world camera footage. This video contains ONLY B-roll under the
+  voiceover — no talking head, no on-camera host, no screenshots, no UI, no captions,
+  no overlays, no graphics.
+- Each shot should represent ONE clear, simple, filmable visual idea.
+- Never combine two narration segments into one object. Never skip a segment.
+- Return the objects in the same order as the narration segments.
+
+Return ONLY valid JSON: a list of exactly N objects, nothing else (no markdown fences):
+[
+  {
+    "text": "...",
+    "purpose": "...",
+    "shot_description": "...",
+    "required": {"communicates": ["idea1"]},
+    "preferred": {"primary_action": ["action1"]},
+    "fallback": {"primary_action": ["action2"]},
+    "pexels_search_terms": ["keyword1", "keyword2"]
+  }
+]
 """
 
 
@@ -134,33 +161,37 @@ class GeminiClient:
             except Exception:
                 pass
 
-    def generate_shot_plan(self, script_text: str, audio_path, audio_duration=None) -> list:
-        uploaded = self._upload_and_wait(audio_path)
+    
+    def generate_segment_plans(self, script_text: str, combined_audio_path, segment_durations: list) -> list:
+        uploaded = self._upload_and_wait(combined_audio_path)
         try:
-            duration_hint = (
-                f"\n\nThe audio is exactly {audio_duration:.2f} seconds long. Your shots' "
-                f"start_seconds/end_seconds must cover exactly 0.00 to {audio_duration:.2f} "
-                f"with no gaps or overlaps."
-                if audio_duration is not None else ""
+            n = len(segment_durations)
+            segment_list_text = "\n".join(
+                f"Segment {i + 1}: ~{d:.2f}s of narration" for i, d in enumerate(segment_durations)
             )
             prompt = (
-                f"Script:\n{script_text}\n\n"
-                "Build the shot plan from the voiceover audio and script above."
-                f"{duration_hint}"
+                f"Full script for context:\n{script_text}\n\n"
+                f"The audio contains exactly {n} narration segments, in order, each separated by "
+                f"an inserted silence. Do not combine or skip segments.\n\n{segment_list_text}\n\n"
+                f"Return exactly {n} JSON objects, one per segment, in order."
             )
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=[uploaded, prompt],
                 config=types.GenerateContentConfig(
-                    system_instruction=SHOT_PLAN_SYSTEM_INSTRUCTION,
+                    system_instruction=SEGMENT_PLAN_SYSTEM_INSTRUCTION,
                     response_mime_type="application/json",
                     max_output_tokens=65536,
                 ),
             )
             finish_reason = response.candidates[0].finish_reason if response.candidates else None
             if str(finish_reason) == "MAX_TOKENS":
-                print("WARNING: shot plan generation hit the token limit and was cut off.")
-            return self._parse_json(response.text)
+                print("WARNING: segment plan generation hit the token limit and was cut off.")
+            plans = self._parse_json(response.text)
+            if not isinstance(plans, list) or len(plans) != n:
+                got = len(plans) if isinstance(plans, list) else "a non-list response"
+                raise ValueError(f"Expected {n} segment plans from Gemini, got {got}.")
+            return plans
         finally:
             try:
                 self.client.files.delete(name=uploaded.name)
