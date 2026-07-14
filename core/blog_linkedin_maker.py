@@ -12,7 +12,7 @@ if ROOT_DIR not in sys.path:
 
 from core import config
 
-GEMMA_MODEL = "gemma-3-27b-it"
+GEMMA_MODEL = "gemma-4-31b-it"
 GEMMA_ENDPOINT = (
     f"https://generativelanguage.googleapis.com/v1beta/models/{GEMMA_MODEL}:generateContent"
 )
