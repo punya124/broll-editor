@@ -3,9 +3,9 @@ import sys
 import os
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REDDIT_SCRIPT = os.path.join(ROOT_DIR, "scripts", "reddit_fetch.py")
-GENERATE_SCRIPT = os.path.join(ROOT_DIR, "scripts", "generate_content.py")
-PUSH_SCRIPT = os.path.join(ROOT_DIR, "scripts", "push_to_github.py")
+REDDIT_SCRIPT = os.path.join(ROOT_DIR, "core", "reddit_pull.py")
+GENERATE_SCRIPT = os.path.join(ROOT_DIR, "core", "blog_linkedin_maker.py")
+PUSH_SCRIPT = os.path.join(ROOT_DIR, "core", "github-pusher.py")
 
 
 def run_step(script_path, label):

@@ -1,101 +1,100 @@
-# B-Roll Auto Editor
+# Broll Editor
 
-A personal, local desktop tool that assembles vertical Instagram Reels automatically from
-a reusable library of your own B-roll footage. It's a small Flask app you run on your own
-machine — everything (footage, metadata, generated videos) stays on your laptop.
+Broll Editor is a small local content studio with two related workflows:
 
-## How it's built (intentionally simple)
+1. Blog Builder: turns recent Reddit conversation into blog post and LinkedIn content.
+2. Reel Maker: creates vertical video edits from a personal library of B-roll footage.
 
-```
-broll-editor/
-  app.py                  Flask server: routes + background job runner
-  core/
-    config.py              Settings (library folder, model, threshold) stored as JSON
-    gemini_client.py        All Gemini calls: clip analysis, shot planning, embeddings
-    library.py             Scans your folder, stores metadata as a .json file next to each clip
-    matcher.py              Scores clips against a shot's requirements (embeddings + tag overlap)
-    planner.py               Validates the shot plan Gemini returns
-    timeline.py              Picks clips, computes center-trims, runs ffmpeg
-  templates/index.html      One-page UI
-  static/app.js, style.css  Vanilla JS — no build step, no frontend framework
-  data/                    Created automatically: settings, uploads, rendered outputs
-```
+This repository currently contains both directions of the project, but the blog-builder workflow is the part that is wired up through the controller script in [core/blog-controller.py](core/blog-controller.py).
 
-No database, no task queue, no frontend build tooling. Clip metadata is stored as a plain
-`clip.mp4.json` file next to each clip (human-readable, easy to inspect or hand-edit),
-matching the "video.mp4 / video.json" option from the spec. Long-running work (analyzing
-clips, generating a video) runs in a background thread and the browser polls a `/api/job/<id>`
-endpoint for progress — no websockets needed.
+## 1. Blog Builder
 
-## Setup
+The blog-builder workflow is a three-step pipeline that runs from the controller script:
 
-1. **Install FFmpeg** (required for trimming/rendering):
-   - macOS: `brew install ffmpeg`
-   - Windows: `winget install ffmpeg` (or download from ffmpeg.org and add to PATH)
-   - Linux: `sudo apt install ffmpeg`
+- Step 1: fetch recent Reddit posts and save prompt ideas
+- Step 2: generate MDX blog posts and LinkedIn posts with Gemini
+- Step 3: push generated content to GitHub
 
-2. **Get a Gemini API key** from [Google AI Studio](https://aistudio.google.com/apikey).
+### What it does
 
-3. **Install Python dependencies**:
+The pipeline is orchestrated by [core/blog-controller.py](core/blog-controller.py) and calls these scripts in order:
+
+- [core/reddit_pull.py](core/reddit_pull.py): pulls recent posts from a curated set of Reddit subreddits, filters out duplicates, and writes prompt suggestions to [data/outputs/reddit_blog_prompt_suggestions.json](data/outputs/reddit_blog_prompt_suggestions.json)
+- [core/blog_linkedin_maker.py](core/blog_linkedin_maker.py): reads those suggestions, uses Gemini to generate blog content in MDX format plus a LinkedIn post, and saves the output in [data/outputs/generated_content](data/outputs/generated_content)
+- [core/github-pusher.py](core/github-pusher.py): uploads the generated MDX files to a GitHub repository under the content/blog path
+
+### What you need
+
+Before running the blog builder, make sure you have:
+
+- Python installed with the packages from [requirements.txt](requirements.txt)
+- A Gemini API key available as GEMINI_API_KEY
+- A GitHub token available as GITHUB_TOKEN if you want the output pushed to GitHub
+- Network access so the scripts can reach Reddit and the Gemini API
+
+### Setup
+
+1. Install the Python dependencies:
    ```bash
-   cd broll-editor
    pip install -r requirements.txt
    ```
 
-4. **Set your API key** as an environment variable:
+2. Set the required environment variables. A simple option is to export them in your shell:
    ```bash
-   export GEMINI_API_KEY="your-key-here"      # macOS/Linux
-   setx GEMINI_API_KEY "your-key-here"          # Windows
+   export GEMINI_API_KEY="your-gemini-key"
+   export GITHUB_TOKEN="your-github-token"
    ```
 
-5. **Run it**:
+   You can also place these values in a .env file at the project root if you prefer, since the project loads environment variables from there.
+
+3. Run the blog-builder controller:
    ```bash
-   python app.py
+   python core/blog-controller.py
    ```
-   Then open **http://localhost:8080** in your browser.
 
-## Using it
+### What happens when you run it
 
-1. **Library** — paste the absolute path to your B-roll folder (e.g. `/Users/me/BRoll`),
-   click Save, then **Scan & Analyze**. Every new clip gets sent to Gemini once, tagged
-   with structured metadata (description, mood, what it communicates, etc.), embedded for
-   semantic search, and cached as a `.json` sidecar file next to the clip. Re-scanning
-   only analyzes clips that don't already have metadata, so you can add new footage over
-   time without re-processing everything.
+Running the controller will execute the pipeline in order:
 
-2. **New Project** — paste your script and upload your finished voiceover audio file, then
-   click **Generate Video**. The app:
-   - Sends the script + audio to Gemini to get a shot-by-shot plan (durations + the
-     *meaning* each shot needs to communicate — never screenshots, captions, or overlays).
-   - Searches your library for the best-matching clip for each shot (embedding similarity,
-     boosted when a clip's own tags literally match the shot's requirements).
-   - If every shot clears the match threshold, it center-trims each selected clip, stitches
-     them in order with FFmpeg, and muxes in your voiceover. You'll get a video player and
-     a list of which clip was used for each shot.
-   - If any shot can't be matched above the threshold, no video is rendered — you'll see a
-     **Missing Footage** report instead (what's needed, its purpose, its duration) so you
-     know exactly what to go film next.
+1. Reddit fetch and prompt generation
+2. Blog and LinkedIn content creation
+3. GitHub upload for generated MDX files
 
-3. **Settings** — switch between `gemini-2.5-flash` and `gemini-3.1-flash-lite`, and adjust
-   the match threshold (default 85%) if you want the matcher to be stricter or looser.
+The script will create or update these outputs:
 
-## Notes / things worth knowing
+- [data/outputs/reddit_blog_prompt_suggestions.json](data/outputs/reddit_blog_prompt_suggestions.json)
+- [data/outputs/generated_content](data/outputs/generated_content)
+- [data/existing_paths.json](data/existing_paths.json)
 
-- **Model names**: `gemini-3.1-flash-lite` is set up as an option since you mentioned it,
-  but I haven't been able to verify it against the live API from this environment (no
-  network access here). If it errors, switch the model dropdown to `gemini-2.5-flash`,
-  which is a known-good current model.
-- **What I actually tested**: I ran the full FFmpeg trim → scale/crop to 1080×1920 →
-  concatenate → audio-mux pipeline end-to-end with synthetic test clips, and confirmed the
-  output is correct (1080×1920, 30fps, H.264/AAC). I was **not** able to test the Gemini
-  calls themselves (clip analysis, shot planning, embeddings) since this build environment
-  has no network access — those are standard `google-generativeai` SDK calls, but if you
-  hit an error on your first real run, paste it back to me and I'll fix it fast.
-- **Costs**: clip analysis uses video input (charged per video, not just text) and only
-  runs once per clip, ever, unless you delete the sidecar `.json`. Shot planning uses audio
-  input each time you generate a video.
-- **Scale**: matching uses plain Python cosine similarity over embeddings (no vector DB) —
-  totally fine for a personal library in the tens-to-low-hundreds of clips, as scoped in the
-  spec. If your library grows into the thousands, that's the first thing worth optimizing.
-- **Out of scope** (per the spec): captions, overlays, motion graphics, screen recordings,
-  music selection, multi-folder libraries — all left for your manual editing pass.
+### Notes
+
+- The blog builder depends on Gemini being available, so it will stop early if no API key is found.
+- If the suggestions file is missing, the blog-generation step will not have anything to work from.
+- The GitHub push step is optional in the sense that the content is still generated locally, but it will fail unless GITHUB_TOKEN is configured.
+
+## 2. Reel Maker
+
+The reel-maker side of the project is the separate video-generation workflow for creating short vertical videos from a personal collection of footage. It is not part of the blog-controller pipeline.
+
+### What it needs
+
+- FFmpeg installed and available on your PATH
+- A Gemini API key
+- A folder of source video clips to analyze and assemble
+- The Python dependencies from [requirements.txt](requirements.txt)
+
+### How to run it
+
+Start the local app:
+
+```bash
+python app.py
+```
+
+Then open the app in your browser at:
+
+```text
+http://localhost:8080
+```
+
+This section is intentionally brief for now, since the current README focus is the blog-builder workflow that runs through [core/blog-controller.py](core/blog-controller.py).

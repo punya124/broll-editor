@@ -1,92 +1,89 @@
 [
   {
-    "title": "Beyond the Commit Count: Why Your Output Isn't Getting You Promoted",
-    "persona": "Tech Recruiter and Senior Software Architect",
-    "target_audience": "Ambitious US CS students and junior devs struggling with career progression and recognition.",
-    "outline": {
-      "introduction": "Address the frustration of the 'top contributor' paradox: why shipping the most code often leads to burnout rather than a promotion.",
-      "section_1": "Myth-Busting: Debunk the 'code volume = value' fallacy and explain why impact-driven engineering is the only currency that matters.",
-      "section_2": "The Practical Blueprint: A 3-step framework for aligning your daily tasks with business objectives rather than just JIRA tickets.",
-      "section_3": "Before-and-After: Contrast a standard 'Task-Focused' engineer update vs. an 'Impact-Focused' update that triggers promotion conversations.",
-      "seo": {
-        "primary_keyword": "software engineering career growth",
-        "lsi_keywords": [
-          "promotion criteria for software engineers",
-          "impact-driven software development"
-        ]
-      },
-      "tone": [
-        "Unfiltered",
-        "Highly Practical",
-        "Peer-to-Peer",
-        "Constructive"
-      ],
-      "banned_attributes": [
-        "corporate fluff",
-        "generic advice",
-        "inspirational quotes",
-        "tech-bro jargon"
+    "persona": "Tech Recruiter + Senior Software Architect",
+    "title": "Cracking the Citadel Interview: A No-Fluff Guide for CS Students",
+    "target_audience": "Ambitious US CS students targeting top-tier quantitative and high-frequency trading firms.",
+    "seo_keywords": {
+      "primary": "Citadel technical interview",
+      "secondary": [
+        "quantitative software engineering",
+        "CS career preparation"
       ]
-    }
+    },
+    "structure": {
+      "introduction": "Acknowledge the crushing anxiety of high-stakes interviews and debunk the idea that you need to be a 'genius' rather than a disciplined executor.",
+      "section_1": "Reality Check: Why standard LeetCode isn't enough\u2014the shift toward system design and low-latency performance constraints.",
+      "section_2": "The Blueprint: A 4-week prep cycle including concurrency primitives, memory management in C++, and competitive programming habits.",
+      "section_3": "Before-and-After: How to pivot a generic algorithm explanation into a performance-conscious discussion with interviewers."
+    },
+    "tone": [
+      "Unfiltered",
+      "Highly practical",
+      "Peer-to-peer",
+      "Constructive"
+    ],
+    "banned_content": [
+      "Corporate jargon",
+      "Motivational fluff",
+      "Generic 'be yourself' advice"
+    ]
   },
   {
-    "title": "Navigating the New Hiring Reality: How to Land Roles in a Post-2022 Market",
-    "persona": "Tech Recruiter and Senior Software Architect",
-    "target_audience": "CS graduates and junior software engineers facing the brutal reality of an saturated, high-barrier job market.",
-    "outline": {
-      "introduction": "Acknowledge the 'golden age' myth of 2-round interview cycles and validate the exhaustion of the current long-form interview gauntlet.",
-      "section_1": "Reality Check: Why the bar has moved from 'can you code' to 'can you prove you won't need hand-holding' in the current economy.",
-      "section_2": "The Practical Blueprint: A reverse-engineering approach to landing referrals and bypassing the 'black hole' ATS systems.",
-      "section_3": "Scripts: Actionable templates for reaching out to internal engineers for referrals without sounding like a desperate job seeker.",
-      "seo": {
-        "primary_keyword": "getting a software engineering job",
-        "lsi_keywords": [
-          "tech job market trends 2025",
-          "networking for software developers"
-        ]
-      },
-      "tone": [
-        "Unfiltered",
-        "Highly Practical",
-        "Peer-to-Peer",
-        "Constructive"
-      ],
-      "banned_attributes": [
-        "corporate fluff",
-        "generic advice",
-        "empty motivation",
-        "pessimistic doom-posting"
+    "persona": "Tech Recruiter + Engineering Manager",
+    "title": "Beyond the First Offer: A New Grad\u2019s Guide to Total Compensation and Career Trajectory",
+    "target_audience": "New CS grads facing the 'should I accept' dilemma with underwhelming offers or 'safe' but stagnant bank roles.",
+    "seo_keywords": {
+      "primary": "CS career advice",
+      "secondary": [
+        "software engineering compensation",
+        "career growth for new grads"
       ]
-    }
+    },
+    "structure": {
+      "introduction": "Address the fear of the 'bad first job' and the pressure to accept low-ball 10% hikes just to escape the job hunt.",
+      "section_1": "Myth-Busting: Why the 'brand name' of a bank isn't always a career accelerator and the hidden costs of early career stagnation.",
+      "section_2": "The Blueprint: How to evaluate total compensation (RSUs/Bonus structures) versus the 'learning multiplier' of a role.",
+      "section_3": "Scripts: How to negotiate a low offer or decide when to walk away for a higher-growth opportunity."
+    },
+    "tone": [
+      "Direct",
+      "Empowering",
+      "Calculated",
+      "Transparent"
+    ],
+    "banned_content": [
+      "Vague optimism",
+      "Encouraging over-attachment to employers",
+      "Entry-level platitudes"
+    ]
   },
   {
-    "title": "The First Two Years: Staying Relevant When Software Evolution Outpaces You",
-    "persona": "Senior Software Architect",
-    "target_audience": "Entry-level developers and recent CSE graduates feeling lost between training institutes and the professional workforce.",
-    "outline": {
-      "introduction": "Address the feeling of obsolescence when your CS degree feels disconnected from the rapidly shifting demands of real-world software evolution.",
-      "section_1": "Conceptual Reality: Distinguish between 'learning a syntax' (useless long-term) and 'learning systems thinking' (the only job-proof skill).",
-      "section_2": "The Practical Blueprint: How to build a personal R&D cycle that keeps your skills sharp without falling for the 'tutorial hell' trap.",
-      "section_3": "Case Studies: Comparing the long-term career trajectory of a 'software training institute' graduate vs. a self-directed systems thinker.",
-      "seo": {
-        "primary_keyword": "software engineering career roadmap",
-        "lsi_keywords": [
-          "staying relevant in tech",
-          "systems thinking for developers"
-        ]
-      },
-      "tone": [
-        "Unfiltered",
-        "Highly Practical",
-        "Peer-to-Peer",
-        "Constructive"
-      ],
-      "banned_attributes": [
-        "corporate fluff",
-        "generic advice",
-        "oversimplification",
-        "buzzword stuffing"
+    "persona": "Senior Software Architect + Technical Hiring Lead",
+    "title": "Stop Building 'Yet Another' To-Do List: Stand-Out Projects That Actually Get You Hired",
+    "target_audience": "CS students struggling to differentiate their portfolios from thousands of other candidates.",
+    "seo_keywords": {
+      "primary": "stand-out skills for software engineering",
+      "secondary": [
+        "CS project ideas",
+        "software engineering portfolio"
       ]
-    }
+    },
+    "structure": {
+      "introduction": "The brutal truth: Hiring managers skip portfolios filled with tutorial-grade projects like AI chatbots or Library Management systems.",
+      "section_1": "Conceptual Reality: Why recruiters look for 'System Complexity' over 'Feature Quantity' and how to show depth.",
+      "section_2": "The Blueprint: Moving toward low-level implementations, dev-tools, or performance-optimization projects that show architectural thinking.",
+      "section_3": "Before-and-After: Transforming a generic FYP pitch into a high-impact engineering case study."
+    },
+    "tone": [
+      "Unfiltered",
+      "Highly practical",
+      "Technical",
+      "Direct"
+    ],
+    "banned_content": [
+      "Fluffy praise",
+      "Generic advice on 'being passionate'",
+      "Mentioning non-technical resume builders"
+    ]
   }
 ]

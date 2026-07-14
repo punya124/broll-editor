@@ -81,7 +81,7 @@ def push_generated_content(delete_after_push=True):
         print(f"No generated_content folder found at {content_dir}. Nothing to push.")
         return
 
-     files = sorted(f for f in os.listdir(content_dir) if f.endswith(".mdx"))
+    files = sorted(f for f in os.listdir(content_dir) if f.endswith(".mdx"))
     if not files:
         print("No .mdx files found in generated_content. Nothing to push.")
         return
