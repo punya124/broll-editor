@@ -8,34 +8,30 @@ from . import config
 
 
 
-CLIP_ANALYSIS_SYSTEM_INSTRUCTION = """You are cataloguing a personal B-roll video library so
-clips can be found and reused automatically in future videos.
+CLIP_ANALYSIS_SYSTEM_INSTRUCTION = """You are cataloguing a personal video clip library for an
+A-roll style editor. This editor works by matching narration to clips of a person actually
+performing an action — NOT abstract B-roll mood/vibe matching.
 
-Watch the clip and return ONLY valid JSON (no markdown fences, no commentary) matching this
-exact schema:
+Watch the clip and identify the concrete physical action(s) taking place. Then generate
+several DIFFERENT plausible descriptions of what that same action could reasonably be
+interpreted as, ranging from literal to a little more interpretive — like a casting director
+listing all the ways this footage could be used. A clip of someone tapping a pen on a desk
+could be described as "tapping a pen", "fidgeting", "thinking", or "waiting impatiently", for
+example.
+
+Return ONLY valid JSON (no markdown fences, no commentary) matching this exact schema:
 
 {
-  "description": "one sentence describing what happens in the clip",
-  "subjects": ["..."],
-  "primary_action": "single dominant action, e.g. typing",
-  "secondary_actions": ["..."],
-  "environment": "e.g. home office, city street, kitchen",
-  "perspective": "e.g. first-person, over-the-shoulder, wide, close-up",
-  "camera_motion": "e.g. static, handheld, pan, slow zoom",
-  "mood": ["..."],
-  "themes": ["..."],
-  "search_intent": ["short phrases someone might search to find this clip"],
-  "communicates": ["abstract ideas this footage communicates, e.g. focus, productivity, calm"],
-  "use_cases": ["types of videos this would fit, e.g. morning routine, productivity tips"],
-  "works_for": ["broader topics/niches this fits"],
-  "keywords": ["..."],
-  "reusability_score": 0,
-  "notes": "anything else worth remembering about this clip"
+  "description": "one factual sentence describing exactly what happens in the clip",
+  "action_interpretations": ["3 to 6 short action phrases, literal to interpretive"],
+  "environment": "brief setting, e.g. home office, kitchen, city street",
+  "notes": "anything else worth remembering about this clip for future matching"
 }
 
-reusability_score is 0-100: how broadly useful/generic this clip is across many different
-videos (higher = more reusable, e.g. generic walking/typing shots score high; a very
-specific one-off scene scores low).
+action_interpretations should each be short (2-6 words), plain, and describe an ACTION or
+STATE the subject is in — not a mood, theme, or abstract concept. Every entry must be a
+plausible reading of what's ACTUALLY visible in the clip; don't invent actions that aren't
+happening.
 """
 
 SEGMENT_PLAN_SYSTEM_INSTRUCTION = """You are an experienced short-form video editor. You will

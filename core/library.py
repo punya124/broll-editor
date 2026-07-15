@@ -1,6 +1,8 @@
 import json
 import subprocess
 from pathlib import Path
+from . import config
+import time
 
 VIDEO_EXTS = {".mp4", ".mov", ".m4v"}
 
@@ -52,23 +54,48 @@ def probe_duration(path) -> float:
 
 
 def clip_text_for_embedding(meta: dict) -> str:
-    """Flattens a clip's metadata into one string for semantic embedding."""
     parts = [
         meta.get("description", ""),
-        " ".join(meta.get("subjects", []) or []),
-        meta.get("primary_action", ""),
-        " ".join(meta.get("secondary_actions", []) or []),
+        " ".join(meta.get("action_interpretations", []) or []),
         meta.get("environment", ""),
-        " ".join(meta.get("mood", []) or []),
-        " ".join(meta.get("themes", []) or []),
-        " ".join(meta.get("communicates", []) or []),
-        " ".join(meta.get("use_cases", []) or []),
-        " ".join(meta.get("works_for", []) or []),
-        " ".join(meta.get("keywords", []) or []),
         meta.get("notes", ""),
     ]
     return " | ".join([p for p in parts if p])
 
+
+def rebuild_action_vocabulary(folder: str) -> dict:
+    """Scans every analyzed clip and builds a deduplicated
+    action -> [clip filenames] map — the source of truth for what actions
+    we can PROVE we already have footage of."""
+    clips = scan_library(folder)
+    vocabulary = {}
+    for c in clips:
+        meta = load_metadata(c)
+        if not meta:
+            continue
+        for action in meta.get("action_interpretations", []) or []:
+            key = action.strip().lower()
+            if not key:
+                continue
+            vocabulary.setdefault(key, [])
+            if c.name not in vocabulary[key]:
+                vocabulary[key].append(c.name)
+
+    config.ensure_dirs()
+    with open(config.ACTION_VOCAB_PATH, "w") as f:
+        json.dump({"actions": vocabulary}, f, indent=2)
+    return vocabulary
+
+
+def get_action_vocabulary() -> dict:
+    if not config.ACTION_VOCAB_PATH.exists():
+        return {}
+    try:
+        with open(config.ACTION_VOCAB_PATH, "r") as f:
+            return json.load(f).get("actions", {})
+    except Exception:
+        return {}
+    
 
 def get_library_status(folder: str) -> dict:
     clips = scan_library(folder)
@@ -79,28 +106,63 @@ def get_library_status(folder: str) -> dict:
             unanalyzed += 1
     return {"total": len(clips), "unanalyzed": unanalyzed}
 
-
-def ensure_analyzed(folder: str, gemini_client, log=None):
-    """Analyzes (once) every clip in the library that doesn't already have metadata
-    and an embedding, then saves the metadata as a JSON sidecar file."""
-    log = log or (lambda msg: None)
+def scan_and_analyze_pending(folder: str, gemini_client, log=None, batch_size=10, pause_seconds=60):
+    """Analyzes every never-seen clip — exactly ONE Gemini request each — and
+    saves the result immediately with review_status='pending' so it's durable
+    even if interrupted mid-batch. Paces itself: after every `batch_size`
+    clips, sleeps `pause_seconds` before continuing, to stay under rate limits."""
+    log = log or (lambda m: None)
     clips = scan_library(folder)
+    to_analyze = [c for c in clips if load_metadata(c) is None]
+
+    for i, c in enumerate(to_analyze):
+        if i > 0 and i % batch_size == 0:
+            log(f"Analyzed {i} clips — pausing {pause_seconds}s to respect Gemini rate limits...")
+            time.sleep(pause_seconds)
+
+        log(f"Analyzing {c.name}... ({i + 1}/{len(to_analyze)})")
+        meta = gemini_client.analyze_clip(c)  # exactly one API request
+        meta["id"] = c.stem
+        meta["review_status"] = "pending"
+        save_metadata(c, meta)
+
+    return to_analyze
+
+
+def get_pending_review_clips(folder: str):
+    """Everything analyzed but not yet confirmed by the user."""
+    clips = scan_library(folder)
+    pending = []
     for c in clips:
         meta = load_metadata(c)
-        if meta and "embedding" in meta and "duration_seconds" in meta:
-            continue
+        if meta and meta.get("review_status") == "pending":
+            pending.append({
+                "name": c.name,
+                "description": meta.get("description", ""),
+                "action_interpretations": meta.get("action_interpretations", []) or [],
+                "environment": meta.get("environment", ""),
+            })
+    return pending
 
-        if not meta:
-            log(f"Analyzing {c.name}...")
-            meta = gemini_client.analyze_clip(c)
-            meta["id"] = c.stem
 
-        if "duration_seconds" not in meta:
-            meta["duration_seconds"] = probe_duration(c)
+def confirm_clip_review(folder: str, clip_name: str, actions: list, gemini_client):
+    """Finalizes one clip using the (possibly user-edited) action list.
+    This is the ONE place embedding happens — one request, at confirm time."""
+    clip_path = Path(folder) / clip_name
+    meta = load_metadata(clip_path)
+    if not meta:
+        raise ValueError(f"No pending analysis found for {clip_name}")
 
-        if "embedding" not in meta:
-            meta["embedding"] = gemini_client.embed_text(clip_text_for_embedding(meta))
+    cleaned_actions = [a.strip() for a in actions if a and a.strip()]
+    meta["action_interpretations"] = cleaned_actions
+    meta["review_status"] = "confirmed"
 
-        meta["_path"] = str(c)
-        save_metadata(c, meta)
-    return clips
+    if "duration_seconds" not in meta:
+        meta["duration_seconds"] = probe_duration(clip_path)
+
+    meta["embedding"] = gemini_client.embed_text(clip_text_for_embedding(meta))
+    meta["_path"] = str(clip_path)
+    save_metadata(clip_path, meta)
+
+    rebuild_action_vocabulary(folder)
+    return meta

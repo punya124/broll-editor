@@ -1,20 +1,20 @@
 [
   {
-    "persona": "Tech Recruiter + Senior Software Architect",
-    "title": "Cracking the Citadel Interview: A No-Fluff Guide for CS Students",
-    "target_audience": "Ambitious US CS students targeting top-tier quantitative and high-frequency trading firms.",
-    "seo_keywords": {
-      "primary": "Citadel technical interview",
-      "secondary": [
-        "quantitative software engineering",
-        "CS career preparation"
-      ]
+    "title": "Stop Worrying If AI Killed CS: How to Actually Become Irreplaceable in 2026",
+    "persona": "Tech Recruiter and Senior Software Architect",
+    "target_audience": "Anxious US CS students and tech graduates concerned about AI saturation and career viability.",
+    "outline": {
+      "introduction": "Validate the 'AI burnout' and existential dread found in Reddit threads. Hook the reader by shifting the focus from 'coding as a task' to 'problem-solving as a career'.",
+      "section_1": "Myth-busting: Why AI is an amplifier, not a replacement. Discuss the 'Junior Ceiling' and how students are mistaking the death of entry-level 'code monkey' roles for the death of the industry.",
+      "section_2": "The Practical Blueprint: Building T-shaped skills. Focus on system architecture basics, domain knowledge, and the 'Human-in-the-loop' development lifecycle.",
+      "section_3": "Before-and-After: Contrast a standard, AI-generated resume/project portfolio with one demonstrating 'Architectural Thinking'. Include a script for interviewing that pivots from syntax to business logic."
     },
-    "structure": {
-      "introduction": "Acknowledge the crushing anxiety of high-stakes interviews and debunk the idea that you need to be a 'genius' rather than a disciplined executor.",
-      "section_1": "Reality Check: Why standard LeetCode isn't enough\u2014the shift toward system design and low-latency performance constraints.",
-      "section_2": "The Blueprint: A 4-week prep cycle including concurrency primitives, memory management in C++, and competitive programming habits.",
-      "section_3": "Before-and-After: How to pivot a generic algorithm explanation into a performance-conscious discussion with interviewers."
+    "seo_keywords": {
+      "primary": "CS career viability",
+      "secondary": [
+        "AI impact on software engineering",
+        "tech industry job outlook 2026"
+      ]
     },
     "tone": [
       "Unfiltered",
@@ -22,68 +22,41 @@
       "Peer-to-peer",
       "Constructive"
     ],
-    "banned_content": [
-      "Corporate jargon",
-      "Motivational fluff",
-      "Generic 'be yourself' advice"
+    "banned_attributes": [
+      "Corporate fluff",
+      "Generic 'keep learning' platitudes",
+      "AI fear-mongering",
+      "Unsubstantiated optimism"
     ]
   },
   {
-    "persona": "Tech Recruiter + Engineering Manager",
-    "title": "Beyond the First Offer: A New Grad\u2019s Guide to Total Compensation and Career Trajectory",
-    "target_audience": "New CS grads facing the 'should I accept' dilemma with underwhelming offers or 'safe' but stagnant bank roles.",
+    "title": "Beyond the Junior Developer Grind: Navigating Your First Role Without Losing Your Mind",
+    "persona": "Senior Software Architect who mentors interns",
+    "target_audience": "Computer Science students transitioning into their first internships or entry-level roles.",
+    "outline": {
+      "introduction": "Acknowledge the crippling anxiety of impostor syndrome and deadline pressure described by students entering the field.",
+      "section_1": "Conceptual Reality Check: Redefining what makes a 'good' developer. Moving away from 'knowing all the libraries' to 'managing technical debt and effective communication'.",
+      "section_2": "The Implementation Framework: A guide to surviving your first 90 days. Focus on asking the right questions, managing up, and handling feedback without internalizing it as failure.",
+      "section_3": "Scripts and Examples: How to communicate a missed deadline to a manager before it becomes a crisis. Example of a 'Post-Mortem' mindset vs. 'Defensive' mindset during code reviews."
+    },
     "seo_keywords": {
-      "primary": "CS career advice",
+      "primary": "software developer career advice",
       "secondary": [
-        "software engineering compensation",
-        "career growth for new grads"
+        "junior developer imposter syndrome",
+        "surviving your first internship"
       ]
     },
-    "structure": {
-      "introduction": "Address the fear of the 'bad first job' and the pressure to accept low-ball 10% hikes just to escape the job hunt.",
-      "section_1": "Myth-Busting: Why the 'brand name' of a bank isn't always a career accelerator and the hidden costs of early career stagnation.",
-      "section_2": "The Blueprint: How to evaluate total compensation (RSUs/Bonus structures) versus the 'learning multiplier' of a role.",
-      "section_3": "Scripts: How to negotiate a low offer or decide when to walk away for a higher-growth opportunity."
-    },
     "tone": [
+      "Mentorship-driven",
       "Direct",
-      "Empowering",
-      "Calculated",
-      "Transparent"
+      "Peer-to-peer",
+      "Grounding"
     ],
-    "banned_content": [
-      "Vague optimism",
-      "Encouraging over-attachment to employers",
-      "Entry-level platitudes"
-    ]
-  },
-  {
-    "persona": "Senior Software Architect + Technical Hiring Lead",
-    "title": "Stop Building 'Yet Another' To-Do List: Stand-Out Projects That Actually Get You Hired",
-    "target_audience": "CS students struggling to differentiate their portfolios from thousands of other candidates.",
-    "seo_keywords": {
-      "primary": "stand-out skills for software engineering",
-      "secondary": [
-        "CS project ideas",
-        "software engineering portfolio"
-      ]
-    },
-    "structure": {
-      "introduction": "The brutal truth: Hiring managers skip portfolios filled with tutorial-grade projects like AI chatbots or Library Management systems.",
-      "section_1": "Conceptual Reality: Why recruiters look for 'System Complexity' over 'Feature Quantity' and how to show depth.",
-      "section_2": "The Blueprint: Moving toward low-level implementations, dev-tools, or performance-optimization projects that show architectural thinking.",
-      "section_3": "Before-and-After: Transforming a generic FYP pitch into a high-impact engineering case study."
-    },
-    "tone": [
-      "Unfiltered",
-      "Highly practical",
-      "Technical",
-      "Direct"
-    ],
-    "banned_content": [
-      "Fluffy praise",
-      "Generic advice on 'being passionate'",
-      "Mentioning non-technical resume builders"
+    "banned_attributes": [
+      "Corporate jargon",
+      "Empty 'hustle culture' advice",
+      "Obvious coding tutorials",
+      "Vague academic encouragement"
     ]
   }
 ]

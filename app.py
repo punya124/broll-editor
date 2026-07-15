@@ -62,18 +62,52 @@ def library_scan():
     def worker():
         try:
             client = GeminiClient(settings)
-            library.ensure_analyzed(folder, client, log=lambda m: _log(job_id, m))
+            library.scan_and_analyze_pending(folder, client, log=lambda m: _log(job_id, m))
             JOBS[job_id]["status"] = "done"
             JOBS[job_id]["result"] = library.get_library_status(folder)
         except Exception as e:
             JOBS[job_id]["status"] = "error"
             JOBS[job_id]["error"] = str(e)
-            tb = traceback.format_exc()
-            JOBS[job_id]["traceback"] = tb
-            print(tb)  # also prints to your terminal immediately
 
     threading.Thread(target=worker, daemon=True).start()
     return jsonify({"job_id": job_id})
+
+@app.route("/api/library/pending")
+def library_pending():
+    settings = config.load_settings()
+    folder = settings.get("library_folder", "")
+    if not folder:
+        return jsonify({"clips": []})
+    return jsonify({"clips": library.get_pending_review_clips(folder)})
+
+
+@app.route("/api/library/confirm", methods=["POST"])
+def library_confirm():
+    settings = config.load_settings()
+    folder = settings.get("library_folder", "")
+    body = request.get_json(force=True)
+    clip_name = body.get("clip_name")
+    actions = body.get("actions", [])
+    if not folder or not clip_name:
+        return jsonify({"error": "Missing library folder or clip name."}), 400
+
+    try:
+        client = GeminiClient(settings)
+        meta = library.confirm_clip_review(folder, clip_name, actions, client)
+        return jsonify({"success": True, "action_interpretations": meta["action_interpretations"]})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/library/clip-file/<path:clip_name>")
+def library_clip_file(clip_name):
+    settings = config.load_settings()
+    folder = settings.get("library_folder", "")
+    folder_path = Path(folder).resolve()
+    requested = (folder_path / clip_name).resolve()
+    if not str(requested).startswith(str(folder_path)):
+        return jsonify({"error": "Invalid path."}), 400
+    return send_from_directory(folder_path, clip_name)
 
 
 # --- Stage 1: Plan (segmentation + single Gemini call). No footage, no render. ---

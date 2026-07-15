@@ -42,9 +42,77 @@ document.getElementById("scanBtn").onclick = () => {
       log.textContent = res.error;
       return;
     }
-    pollJob(res.job_id, log, () => refreshLibraryStatus());
+    pollJob(res.job_id, log, () => {
+      refreshLibraryStatus();
+      loadNextPendingReview();
+    });
   });
 };
+
+function loadNextPendingReview() {
+  api("/api/library/pending").then((res) => {
+    const clips = res.clips || [];
+    if (!clips.length) return;
+    showReviewModal(clips[0], clips.length);
+  });
+}
+
+function showReviewModal(clip, remainingCount) {
+  const overlay = document.createElement("div");
+  overlay.className = "review-overlay";
+  overlay.innerHTML = `
+    <div class="review-modal">
+      <h3>Review: ${clip.name}</h3>
+      <p class="review-count">${remainingCount} clip(s) awaiting review</p>
+      <video controls width="280" src="/api/library/clip-file/${encodeURIComponent(clip.name)}"></video>
+      <p><em>${clip.description}</em></p>
+      <ul id="actionList"></ul>
+      <div class="add-action-row">
+        <input id="newActionInput" type="text" placeholder="Add an action...">
+        <button id="addActionBtn">Add</button>
+      </div>
+      <button id="confirmClipBtn">Confirm</button>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  let actions = [...clip.action_interpretations];
+
+  function renderActions() {
+    const list = overlay.querySelector("#actionList");
+    list.innerHTML = actions
+      .map((a, i) => `<li>${a} <button data-i="${i}" class="removeActionBtn">✕</button></li>`)
+      .join("");
+    list.querySelectorAll(".removeActionBtn").forEach((btn) => {
+      btn.onclick = () => {
+        actions.splice(Number(btn.dataset.i), 1);
+        renderActions();
+      };
+    });
+  }
+  renderActions();
+
+  overlay.querySelector("#addActionBtn").onclick = () => {
+    const input = overlay.querySelector("#newActionInput");
+    const val = input.value.trim();
+    if (val) {
+      actions.push(val);
+      input.value = "";
+      renderActions();
+    }
+  };
+
+  overlay.querySelector("#confirmClipBtn").onclick = () => {
+    api("/api/library/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clip_name: clip.name, actions }),
+    }).then(() => {
+      document.body.removeChild(overlay);
+      refreshLibraryStatus();
+      loadNextPendingReview(); // pulls the next one, if any
+    });
+  };
+}
 
 document.getElementById("generateBtn").onclick = () => {
   const script = document.getElementById("script").value;

@@ -16,13 +16,14 @@ CACHE_DIR = DATA_DIR / "cache"
 UPLOADS_DIR = DATA_DIR / "uploads"
 OUTPUTS_DIR = DATA_DIR / "outputs"
 SETTINGS_PATH = DATA_DIR / "settings.json"
+ACTION_VOCAB_PATH = DATA_DIR / "action_vocabulary.json"
 ACTIVE_UPLOADS = set()
 
 
 DEFAULT_SETTINGS = {
     "library_folder": "",
     "gemini_model": "gemini-3.1-flash-lite",
-    "embedding_model": "gemini-embedding-001",
+    "embedding_model": "gemini-embedding-2",
     "match_threshold": 85,
     "api_key_env": "GEMINI_API_KEY",
 }

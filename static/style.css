@@ -107,3 +107,65 @@ ul {
   color: #555;
   margin-bottom: 10px;
 }
+
+.review-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.review-modal {
+  background: white;
+  border-radius: 10px;
+  padding: 24px;
+  max-width: 360px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.review-count {
+  font-size: 12px;
+  color: #666;
+  margin-top: -8px;
+}
+
+#actionList {
+  list-style: none;
+  padding: 0;
+}
+
+#actionList li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #faf9f7;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+#actionList button {
+  background: none;
+  color: #999;
+  padding: 0 4px;
+  font-size: 14px;
+}
+
+.add-action-row {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.add-action-row input {
+  margin-bottom: 0;
+}
