@@ -67,6 +67,11 @@ button:hover {
   background: #c56a4d;
 }
 
+button:disabled {
+  background: #ccc;
+  cursor: default;
+}
+
 .log {
   background: #faf9f7;
   border: 1px solid #eee;
@@ -96,19 +101,27 @@ ul {
   font-size: 13px;
 }
 
-.missing-actions {
-  margin: 6px 0;
-  display: flex;
-  gap: 6px;
+ol {
+  padding-left: 20px;
+  font-size: 13px;
 }
 
-.missing-status {
+ol li,
+#decisionList li {
+  margin-bottom: 14px;
+}
+
+.hidden {
+  display: none;
+}
+
+.modal-subtext {
   font-size: 12px;
-  color: #555;
-  margin-bottom: 10px;
+  color: #666;
+  margin-top: -8px;
 }
 
-.review-overlay {
+.overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -121,7 +134,7 @@ ul {
   z-index: 1000;
 }
 
-.review-modal {
+.modal {
   background: white;
   border-radius: 10px;
   padding: 24px;
@@ -129,12 +142,6 @@ ul {
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-}
-
-.review-count {
-  font-size: 12px;
-  color: #666;
-  margin-top: -8px;
 }
 
 #actionList {
@@ -160,12 +167,43 @@ ul {
   font-size: 14px;
 }
 
-.add-action-row {
+.add-row {
   display: flex;
   gap: 6px;
   margin: 10px 0;
 }
 
-.add-action-row input {
+.add-row input {
   margin-bottom: 0;
+}
+
+#decisionList {
+  list-style: none;
+  padding: 0;
+}
+
+#decisionList li {
+  background: #faf9f7;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+#decisionList li.resolved {
+  background: #eef7ee;
+}
+
+.decision-actions {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.decision-status {
+  font-size: 12px;
+  color: #555;
+}
+
+#existingPlanPicker {
+  margin-top: 10px;
 }

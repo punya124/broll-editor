@@ -31,25 +31,13 @@ def add_apple_reminder(title, notes="", list_name="Reminders"):
         return False
 
 
-def add_missing_footage_reminders(missing_shots, list_name="B-Roll To Film"):
-    added = 0
-    for item in missing_shots:
-        shot = item["shot"]  # missing entries are now {"index":.., "shot":..}
-        title, notes = shot_to_reminder_fields(shot)
-        if add_apple_reminder(title=title, notes=notes, list_name=list_name):
-            added += 1
-    return added
-
-def shot_to_reminder_fields(shot):
-    purpose = shot.get("purpose", "Untitled shot")
-    duration = shot.get("duration", "?")
-    required = shot.get("required", {})
-    preferred = shot.get("preferred", {})
-
-    notes_lines = [f"Duration: {duration}s"]
-    if required:
-        notes_lines.append(f"Required: {required}")
-    if preferred:
-        notes_lines.append(f"Preferred: {preferred}")
-
-    return f"Film: {purpose}", "\n".join(notes_lines)
+def segment_to_reminder_fields(segment: dict):
+    """Builds a reminder title/notes for a segment the user has chosen to
+    film themselves, rather than use the plan's fallback for."""
+    title = f"Film: {segment.get('main_suggestion', 'Untitled action')}"
+    notes_lines = [f"Duration: {segment.get('duration', '?'):.2f}s"]
+    if segment.get("text"):
+        notes_lines.append(f'Narration: "{segment["text"]}"')
+    if segment.get("fallback"):
+        notes_lines.append(f"(Fallback available instead: {segment['fallback']})")
+    return title, "\n".join(notes_lines)
