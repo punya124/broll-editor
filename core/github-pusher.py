@@ -13,7 +13,9 @@ from core import config
 GITHUB_OWNER = "punya124"
 GITHUB_REPO = "resume-tailor"
 GITHUB_BRANCH = "main"
-GITHUB_TARGET_DIR = "content/blog"  # path inside the repo
+
+GITHUB_BLOG_DIR = "content/blog"
+GITHUB_LINKEDIN_DIR = "content/linkedin"
 
 GITHUB_API_BASE = f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}/contents"
 
@@ -46,9 +48,7 @@ def get_existing_sha(repo_path, token):
     resp.raise_for_status()
 
 
-def push_file_to_github(local_path, repo_filename, token, commit_message):
-    repo_path = f"{GITHUB_TARGET_DIR}/{repo_filename}"
-
+def push_file_to_github(local_path, repo_path, token, commit_message):
     with open(local_path, "rb") as f:
         content_b64 = base64.b64encode(f.read()).decode("utf-8")
 
@@ -67,24 +67,17 @@ def push_file_to_github(local_path, repo_filename, token, commit_message):
 
     if resp.status_code not in (200, 201):
         raise RuntimeError(
-            f"GitHub push failed for {repo_filename}: {resp.status_code} {resp.text}"
+            f"GitHub push failed for {repo_path}: {resp.status_code} {resp.text}"
         )
 
     return resp.json()
 
 
-def push_generated_content(delete_after_push=True):
-    token = get_github_token()
-    content_dir = config.OUTPUTS_DIR / "generated_content"
-
-    if not content_dir.exists():
-        print(f"No generated_content folder found at {content_dir}. Nothing to push.")
-        return
-
-    files = sorted(f for f in os.listdir(content_dir) if f.endswith(".mdx"))
+def push_files_by_extension(content_dir, extension, github_target_dir, token, label):
+    files = sorted(f for f in os.listdir(content_dir) if f.endswith(extension))
     if not files:
-        print("No .mdx files found in generated_content. Nothing to push.")
-        return
+        print(f"No {extension} files found. Nothing to push to {github_target_dir}.")
+        return 0, 0
 
     pushed = 0
     failed = 0
@@ -94,24 +87,47 @@ def push_generated_content(delete_after_push=True):
         if not local_path.is_file():
             continue
 
-        commit_message = f"Added {filename} to blog posts"
+        repo_path = f"{github_target_dir}/{filename}"
+        commit_message = f"Added {filename} to {label}"
 
-        print(f"Pushing {filename} -> {GITHUB_TARGET_DIR}/{filename} ...")
+        print(f"Pushing {filename} -> {repo_path} ...")
         try:
-            push_file_to_github(local_path, filename, token, commit_message)
+            push_file_to_github(local_path, repo_path, token, commit_message)
             print(f"  Pushed. Commit: \"{commit_message}\"")
             pushed += 1
 
-            if delete_after_push:
-                os.remove(local_path)
-                print(f"  Deleted local copy: {local_path}")
+            os.remove(local_path)
+            print(f"  Deleted local copy: {local_path}")
 
         except Exception as exc:
             print(f"  Failed to push {filename}: {exc}")
             failed += 1
 
-    print(f"\nDone. Pushed {pushed} file(s), {failed} failure(s).")
-    if failed:
+    return pushed, failed
+
+
+def push_generated_content():
+    token = get_github_token()
+    content_dir = config.OUTPUTS_DIR / "generated_content"
+
+    if not content_dir.exists():
+        print(f"No generated_content folder found at {content_dir}. Nothing to push.")
+        return
+
+    blog_pushed, blog_failed = push_files_by_extension(
+        content_dir, ".mdx", GITHUB_BLOG_DIR, token, "blog posts"
+    )
+    linkedin_pushed, linkedin_failed = push_files_by_extension(
+        content_dir, ".txt", GITHUB_LINKEDIN_DIR, token, "linkedin posts"
+    )
+
+    total_pushed = blog_pushed + linkedin_pushed
+    total_failed = blog_failed + linkedin_failed
+
+    print(f"\nDone. Pushed {total_pushed} file(s) total "
+          f"({blog_pushed} blog, {linkedin_pushed} linkedin), {total_failed} failure(s).")
+
+    if total_failed:
         sys.exit(1)
 
 
