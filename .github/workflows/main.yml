@@ -1,0 +1,44 @@
+name: Daily Content Pipeline
+
+on:
+  schedule:
+    # 05:00 UTC = 10:30 IST — runs ~1h 21m before the Vercel LinkedIn cron (06:21 UTC)
+    - cron: "0 5 * * *"
+
+  # Manual trigger from GitHub UI or via API (useful for testing)
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run content pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # PAT with "Contents: Read and write" on punya124/resume-tailor
+          GITHUB_TOKEN: ${{ secrets.CONTENT_REPO_PAT }}
+        run: |
+          python core/blog-controller.py
+
+      - name: Upload pipeline logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-failure-logs
+          path: |
+            outputs/
+          retention-days: 3
