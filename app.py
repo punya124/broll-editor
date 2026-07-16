@@ -5,7 +5,7 @@ from pathlib import Path
 
 from flask import Flask, request, jsonify, render_template, send_from_directory
 
-from core import config, library, planner, timeline, reminders, matcher, plan_storage
+from core import config, library, planner, timeline, reminders, matcher, plan_storage, xml_export
 from core.gemini_client import GeminiClient
 
 app = Flask(__name__)
@@ -247,9 +247,6 @@ def _run_auto_match(job_id):
 
 
 def _maybe_finalize(job_id):
-    """Checks whether every segment has a decided status. If any are still
-    needs_decision, does nothing (waits for the user). If all are decided but
-    at least one is film_it, stops without rendering. Otherwise, renders."""
     state = PROJECT_STATE[job_id]
     resolution = state["resolution"]
     statuses = [r["status"] for r in resolution.values()]
@@ -275,7 +272,7 @@ def _maybe_finalize(job_id):
         }
         return True
 
-    _log(job_id, "Rendering...")
+    _log(job_id, "Exporting XML...")
     assignments = []
     for seg in state["segments"]:
         r = resolution[seg["segment_id"]]
@@ -290,12 +287,12 @@ def _maybe_finalize(job_id):
                 "speed": entry["speed"],
             })
 
-    output_path = config.OUTPUTS_DIR / f"{job_id}.mp4"
-    timeline.render_video(assignments, Path(state["audio_path"]), output_path)
+    output_path = config.OUTPUTS_DIR / f"{job_id}.xml"                      # changed
+    xml_export.export_fcp7_xml(assignments, Path(state["audio_path"]), output_path)  # changed
 
     JOBS[job_id]["status"] = "done"
     JOBS[job_id]["result"] = {
-        "video_url": f"/api/project/download/{job_id}.mp4",
+        "xml_url": f"/api/project/download/{job_id}.xml",                   # changed
         "assignments": [
             {"action": a["shot"]["main_suggestion"], "clip": Path(a["clip_path"]).name}
             for a in assignments
