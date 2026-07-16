@@ -183,6 +183,20 @@ class GeminiClient:
             except Exception:
                 pass
 
+    def generate_text(self, prompt: str, system_instruction=None, response_mime_type=None):
+        config_kwargs = {}
+        if system_instruction:
+            config_kwargs["system_instruction"] = system_instruction
+        if response_mime_type:
+            config_kwargs["response_mime_type"] = response_mime_type
+
+        response = self.client.models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(**config_kwargs),
+        )
+        return response.text
+
     def embed_text(self, text: str):
         response = self.client.models.embed_content(
             model=self.embedding_model,
