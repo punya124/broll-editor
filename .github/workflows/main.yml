@@ -24,7 +24,7 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install requests google-genai python-dotenv
 
       - name: Run content pipeline
         env:
