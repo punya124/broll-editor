@@ -6,62 +6,60 @@ from google.genai import types
 
 from . import config
 
-CLIP_ANALYSIS_SYSTEM_INSTRUCTION = """You are cataloguing a personal video clip library for an
-A-roll style editor. This editor works by matching narration to clips of a person actually
-performing an action - NOT abstract B-roll mood/vibe matching.
+CLIP_ANALYSIS_SYSTEM_INSTRUCTION = """You are cataloguing a personal video clip library for a 
+social media video editor. This editor builds fast-paced, high-energy skits that blend narrative 
+acting (A-roll) with quick functional or creative cutaways (B-roll).
 
-Watch the clip and identify the concrete physical action(s) taking place. Then generate
-several DIFFERENT plausible descriptions of what that same action could reasonably be
-interpreted as, ranging from literal to a little more interpretive - like a casting director
-listing all the ways this footage could be used. A clip of someone tapping a pen on a desk
-could be described as "tapping a pen", "fidgeting", "thinking", or "waiting impatiently", for
-example.
+Watch the clip and identify the concrete action(s) taking place. This could be a person acting 
+out a scene, a screen recording of an application, or a close-up of a physical prop. Then generate 
+several DIFFERENT plausible descriptions of what that same action or visual could reasonably be 
+interpreted as, ranging from literal to a little more interpretive. A clip of someone tossing papers 
+could be described as "tossing papers", "throwing away work", "failing a task", or "decluttering".
 
 Return ONLY valid JSON (no markdown fences, no commentary) matching this exact schema:
 
 {
   "description": "one factual sentence describing exactly what happens in the clip",
   "action_interpretations": ["3 to 6 short action phrases, literal to interpretive"],
-  "environment": "brief setting, e.g. home office, kitchen, city street",
-  "notes": "anything else worth remembering about this clip for future matching"
+  "environment": "brief setting, e.g. cubicle office, home desk, screen recording",
+  "notes": "anything else worth remembering about this clip for future matching (e.g., shirt color, props used)"
 }
 
-action_interpretations should each be short (2-6 words), plain, and describe an ACTION or
-STATE the subject is in - not a mood, theme, or abstract concept. Every entry must be a
-plausible reading of what's ACTUALLY visible in the clip; don't invent actions that aren't
+action_interpretations should each be short (2-6 words), plain, and describe a visual ACTION, 
+STATE, or OBJECT being showcased—not a mood or abstract concept. Every entry must be a 
+plausible reading of what's ACTUALLY visible in the clip; don't invent actions that aren't 
 happening.
 """
 
-ACTION_PLAN_SYSTEM_INSTRUCTION = """You are planning footage for an A-roll style video edit,
-not a B-roll cutaway edit. This means each narration segment should show a person actually
-performing a relevant action on camera - like a real interview or talking-through-it video,
-except lip sync is irrelevant (it's a voiceover, not synced dialogue), so any clip of someone
-doing a plausible action works, regardless of what they're saying out loud in it.
+ACTION_PLAN_SYSTEM_INSTRUCTION = """You are planning footage for a high-energy, fast-paced social 
+media video edit. The style relies on rapid cuts (1-1.5 seconds per clip) alternating between 
+narrative acting shots (A-roll), close-up screen recordings, and creative physical props to 
+maintain high visual interest. Lip sync is irrelevant (it's a voiceover).
 
-You will hear an audio file containing several narration segments in a row, each separated by
-a short inserted silence. Timing is NOT your responsibility - it has already been determined
+You will hear an audio file containing several narration segments in a row, each separated by 
+a short inserted silence. Timing is NOT your responsibility—it has already been determined 
 deterministically outside this request. Do not return any timestamps or durations.
 
 For every segment, in order, provide TWO action ideas:
-- "main_suggestion": the ideal action for this moment - a short, concrete, filmable action
-  description (e.g. "person typing quickly and nodding", "person closing a laptop and smiling").
-  This does NOT need to already exist in the footage library; it's the ideal ask, something
-  the user could go film if needed.
-- "fallback": an action you are CERTAIN is already available, because it MUST be copied
-  EXACTLY (case-insensitive is fine, but don't paraphrase) from this list of actions the
+- "main_suggestion": the ideal shot for this fast-paced moment—a short, concrete, filmable action 
+  description. It should vary dynamically between narrative acting (e.g. "person facepalming at desk"), 
+  functional screen B-roll (e.g. "POV scrolling a massive GitHub list"), or creative prop B-roll (e.g. "tossing a massive stack of papers"). 
+  This does NOT need to already exist in the footage library.
+- "fallback": an action you are CERTAIN is already available, because it MUST be copied 
+  EXACTLY (case-insensitive is fine, but don't paraphrase) from this list of actions the 
   library already has real footage for:
   {vocab_text}
-  Pick whichever existing action is the closest reasonable substitute for this segment, even
-  if imperfect. If the list above says the library is empty, return an empty string for
+  Pick whichever existing action is the closest reasonable substitute for this segment, even 
+  if imperfect. If the list above says the library is empty, return an empty string for 
   fallback on every segment.
 
-Also propose one overall "project_name" for this whole video: short, filesystem-safe (letters,
+Also propose one overall "project_name" for this whole video: short, filesystem-safe (letters, 
 numbers, underscores or hyphens only), descriptive of the video's topic.
 
 {feedback_block}
 
-For each narration segment, in order, return "text" (the transcribed narration spoken in that
-segment) plus main_suggestion/fallback as described above. Never combine two segments into one
+For each narration segment, in order, return "text" (the transcribed narration spoken in that 
+segment) plus main_suggestion/fallback as described above. Never combine two segments into one 
 object. Never skip a segment. Return objects in the same order as the narration segments.
 
 Return ONLY valid JSON, nothing else (no markdown fences):

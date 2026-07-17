@@ -2,11 +2,14 @@ import re
 import subprocess
 from pathlib import Path
 
-MAX_SEGMENT_SECONDS = 6.0
-MIN_SEGMENT_SECONDS = 0.5
-PRIMARY_SILENCE_DB = "-30dB"
-PRIMARY_SILENCE_DURATION = 0.4
-SECONDARY_SILENCE_DURATION = 0.15
+# Forces cuts to happen much more frequently, aligning with the 1-1.5s target pacing
+MAX_SEGMENT_SECONDS = 2.0  
+MIN_SEGMENT_SECONDS = 0.4  
+
+# Keeps silence detection highly sensitive to rapid breaks between words/phrases
+PRIMARY_SILENCE_DB = "-35dB"
+PRIMARY_SILENCE_DURATION = 0.20  # Lowered from 0.3s to catch even tiny breath pauses
+SECONDARY_SILENCE_DURATION = 0.10 # Lowered from 0.15s for precision micro-pause splitting
 DEFAULT_GAP_SECONDS = 0.75
 
 
@@ -32,26 +35,40 @@ def detect_silences(audio_path, noise_db=PRIMARY_SILENCE_DB, min_duration=PRIMAR
 
 
 def _segments_from_silences(total_duration, silences):
-    """Cuts at the midpoint of each detected silence."""
-    cut_points = [0.0]
-    for s_start, s_end in silences:
-        cut_points.append((s_start + s_end) / 2.0)
-    cut_points.append(total_duration)
-    cut_points = sorted(set(cut_points))
+    """
+    MODIFIED: Instead of splitting at the midpoint of silences, this isolates 
+    the actual speech zones. The cut locations are now placed tightly around 
+    the speech boundaries (silence_end to the next silence_start).
+    """
+    if not silences:
+        return [(0.0, total_duration)]
 
     segments = []
-    for i in range(len(cut_points) - 1):
-        start, end = cut_points[i], cut_points[i + 1]
-        if end - start > 0.01:
-            segments.append((start, end))
+    current_start = 0.0
+
+    for s_start, s_end in silences:
+        # If there is valid audio between the last silence end and this silence start
+        if s_start - current_start > 0.05:
+            segments.append((current_start, s_start))
+        current_start = s_end
+
+    # Handle the final audio segment after the last detected silence
+    if total_duration - current_start > 0.05:
+        segments.append((current_start, total_duration))
+
     return segments
 
 
 def _find_split_point(start, end, secondary_silences):
+    """
+    MODIFIED: Looks for a secondary breath/pause boundary to split overly 
+    long speech segments, prioritizing actual pauses over a blind mathematical midpoint.
+    """
     midpoint = (start + end) / 2.0
     candidates = []
     for s_start, s_end in secondary_silences:
-        cut = (s_start + s_end) / 2.0
+        # Look for a clean cut right when the speaker stops talking inside this window
+        cut = s_start 
         if start < cut < end:
             left, right = cut - start, end - cut
             if left >= MIN_SEGMENT_SECONDS and right >= MIN_SEGMENT_SECONDS:
@@ -59,7 +76,7 @@ def _find_split_point(start, end, secondary_silences):
     if candidates:
         candidates.sort(key=lambda c: abs(c - midpoint))
         return candidates[0]
-    return midpoint  # no valid pause found -> split at midpoint
+    return midpoint  
 
 
 def _split_recursive(start, end, secondary_silences):
@@ -95,7 +112,7 @@ def _merge_short_segments(segments):
 
             valid = [c for c in candidates if c[1] <= MAX_SEGMENT_SECONDS]
             pool = valid if valid else candidates
-            pool.sort(key=lambda c: c[1])  # prefer the smaller/more-balanced merge result
+            pool.sort(key=lambda c: c[1])  
             choice = pool[0][0]
 
             if choice == "prev":
@@ -109,10 +126,11 @@ def _merge_short_segments(segments):
 
 
 def build_narration_segments(audio_path):
-    """Returns a list of (start, end) tuples: deterministic narration segments
-    covering the full audio with no gaps or overlaps, each strictly between
-    MIN_SEGMENT_SECONDS and MAX_SEGMENT_SECONDS."""
-    from .library import probe_duration  # local import avoids a circular import
+    """
+    Returns a list of clean (start, end) tuples representing exact speech intervals.
+    Silences are stripped out so your video editor knows exactly where dialogue lives.
+    """
+    from .library import probe_duration  
 
     total_duration = probe_duration(audio_path)
     primary = detect_silences(audio_path, PRIMARY_SILENCE_DB, PRIMARY_SILENCE_DURATION)
@@ -125,9 +143,6 @@ def build_narration_segments(audio_path):
 
 
 def build_combined_audio_with_gaps(audio_path, segments, output_path, gap_seconds=DEFAULT_GAP_SECONDS):
-    """Extracts each narration segment and concatenates them with a fixed
-    silent gap in between, into one temporary audio file for a single Gemini
-    request covering the whole video."""
     inputs = ["-i", str(audio_path)]
     filter_parts = []
     concat_labels = []

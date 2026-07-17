@@ -4,7 +4,7 @@ from turtle import width
 from . import matcher
 from .library import probe_duration
 
-MAX_SLOWDOWN = 0.5  # never slow a clip more than 50%
+MAX_SLOWDOWN = 0.65  # never slow a clip more than 65%
 
 def compute_trim(clip_duration: float, need_duration: float):
     """Center trim: take the middle `need_duration` seconds of the clip so
