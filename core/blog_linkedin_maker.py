@@ -24,24 +24,49 @@ BANNED_WORDS = [
 
 BLOG_BASE_URL_PATH = "/blog"
 
-# Lives OUTSIDE the outputs folder on purpose — outputs get pushed to GitHub
-# and wiped, but this file must persist across runs as the permanent record
-# of every post ever generated.
-DATA_DIR = os.path.join(ROOT_DIR, "data")
-EXISTING_PATHS_FILE = os.path.join(DATA_DIR, "existing_paths.json")
+def fetch_existing_posts_from_github(token):
+    """Fetch blog post metadata live from the GitHub repo's content/blog directory.
+    Each MDX file is read and its export const metadata block parsed for
+    title, description, and date — so the LLM gets accurate context for
+    internal links. Returns [] when the repo is unreachable or unreadable."""
+    url = "https://api.github.com/repos/punya124/resume-tailor/contents/content/blog"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github.v3+json",
+    }
 
-
-def load_existing_paths():
-    if not os.path.exists(EXISTING_PATHS_FILE):
+    resp = requests.get(url, headers=headers, timeout=30)
+    if resp.status_code != 200:
+        print(f"  Warning: Could not fetch blog list from GitHub ({resp.status_code})")
         return []
-    with open(EXISTING_PATHS_FILE) as f:
-        return json.load(f)
 
+    entries = []
+    for item in resp.json():
+        if not isinstance(item, dict) or not item["name"].endswith(".mdx"):
+            continue
 
-def save_existing_paths(entries):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(EXISTING_PATHS_FILE, "w") as f:
-        json.dump(entries, f, indent=2)
+        filename = item["name"][:-4]  # strip .mdx
+
+        content_resp = requests.get(item["download_url"], headers=headers, timeout=30)
+        if content_resp.status_code != 200:
+            continue
+
+        text = content_resp.text
+        title = extract_metadata_field(text, "title", fallback=filename)
+        description = extract_metadata_field(text, "description", fallback="")
+        date = extract_metadata_field(text, "date", fallback="")
+
+        entries.append({
+            "filename": filename,
+            "title": title,
+            "description": description,
+            "date": date,
+        })
+
+    # newest first so build_existing_posts_context shows the most recent posts
+    entries.sort(key=lambda e: e.get("date", ""), reverse=True)
+    print(f"  Loaded {len(entries)} existing posts from GitHub")
+    return entries
 
 
 def build_existing_posts_context(existing_posts, max_items=15):
@@ -322,7 +347,7 @@ def main():
         print("No patterns found in suggestions file.")
         sys.exit(1)
 
-    existing_posts = load_existing_paths()
+    existing_posts = fetch_existing_posts_from_github(os.environ.get("GITHUB_TOKEN", ""))
 
     today_str = datetime.date.today().isoformat()
     content_dir = config.OUTPUTS_DIR / "generated_content"
@@ -364,8 +389,8 @@ def main():
         print(f"  Saved blog: {blog_path}")
         print(f"  Saved LinkedIn post: {linkedin_path}")
 
-        # Register this post permanently so future runs (even after this
-        # file gets pushed to GitHub and deleted locally) can still link to it
+        # Keep this in-memory so subsequent patterns in the same batch
+        # can detect slug collisions before the files are pushed to GitHub
         new_entry = {
             "filename": filename,
             "title": title,
@@ -373,7 +398,6 @@ def main():
             "date": today_str,
         }
         existing_posts.append(new_entry)
-        save_existing_paths(existing_posts)
 
     print("Done.")
 

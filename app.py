@@ -1,3 +1,4 @@
+import json
 import threading
 import traceback
 import uuid
@@ -221,23 +222,139 @@ def _run_auto_match(job_id):
 
     cache = {}
     resolution = {}
+    
+    # Track raw vector matches for a secondary batch-reranking phase
+    segment_matches = {}
+
+    # Phase 1: Run the initial embedding matches across all segments
     for seg in state["segments"]:
         sid = seg["segment_id"]
+        good = []
+        used_fallback = False
+
+        # 1. Try embedding match on the main suggestion
         candidates = matcher.find_best_action_matches(
             seg["main_suggestion"], clips_with_meta, client.embed_text, cache, top_n=5
         )
-        good = [c for c in candidates if c[2] >= threshold][:3]
+        if candidates:
+            good = [c for c in candidates if c[2] >= threshold]
+
+        # 2. If embedding fails, leverage the explicit fallback string from the LLM
+        if not good and seg.get("fallback"):
+            used_fallback = True
+            fallback_candidates = matcher.find_best_action_matches(
+                seg["fallback"], clips_with_meta, client.embed_text, cache, top_n=5
+            )
+            if fallback_candidates:
+                good = [c for c in fallback_candidates if c[2] >= threshold]
+
         if good:
-            resolution[sid] = {
-                "status": "auto_matched",
-                "candidates": [
-                    (str(p), m.get("duration_seconds") or library.probe_duration(p))
-                    for p, m, s in good
-                ],
-                "score": round(good[0][2], 1),
+            segment_matches[sid] = {
+                "query": seg["fallback"] if used_fallback else seg["main_suggestion"],
+                "candidates": good
             }
         else:
             resolution[sid] = {"status": "needs_decision"}
+
+    # Phase 2: Batch LLM Reranking using action_interpretations
+    rerank_payload = {}
+    for sid, match_data in segment_matches.items():
+        if len(match_data["candidates"]) > 1:
+            clips_payload = []
+            for idx, (p, m, s) in enumerate(match_data["candidates"]):
+                # Extract actions if available; format as clean list or fallback to description
+                actions = m.get("action_interpretations", [])
+                if not actions and m.get("description"):
+                    actions = [m["description"]]
+                
+                clips_payload.append({
+                    "index": idx,
+                    "actions": actions
+                })
+                
+            rerank_payload[sid] = {
+                "target_action": match_data["query"],
+                "clips": clips_payload
+            }
+    print("rerank_payload", rerank_payload)  # Debugging line to check the payload before sending to LLM
+    if rerank_payload:
+        prompt = (
+            "You are a professional video editing assistant. I am providing a JSON payload containing several "
+            "video segments and their candidate source clips. For each segment, rerank the clips from best to worst "
+            "based strictly on how accurately their interpreted meaning ('actions') fulfills the 'target_action'. We don't give a shit about anything other than whether or not this is accurately portraying what is being said.\n\n"
+            f"Input Data:\n{json.dumps(rerank_payload, indent=2)}\n\n"
+            "Respond ONLY with a valid JSON object matching this schema. Do not include markdown blocks or extra text:\n"
+            "{\n"
+            "  \"segment_id_1\": [2, 0, 1],\n"
+            "  \"segment_id_2\": [1, 0]\n"
+            "}\n"
+            "Where the arrays contain the clip indices ordered from best match to worst match."
+        )
+        
+        try:
+            response_text = client.generate_text(prompt).strip()
+            print("LLM rerank response:", response_text)  # Debugging line to check the LLM response
+            if "```json" in response_text:
+                response_text = response_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in response_text:
+                response_text = response_text.split("```")[1].split("```")[0].strip()
+
+            reranked_orders = json.loads(response_text)
+
+            # JSON keys are always strings; convert back to int to match segment_matches
+            reranked_orders = {
+                int(k) if isinstance(k, str) and k.lstrip('-').isdigit() else k: v
+                for k, v in reranked_orders.items()
+            }
+
+            # Apply LLM reordering back to the segment dictionary
+            for sid, ordered_indices in reranked_orders.items():
+                if sid in segment_matches:
+                    original_list = segment_matches[sid]["candidates"]
+                    new_list = [original_list[idx] for idx in ordered_indices if idx < len(original_list)]
+                    for item in original_list:
+                        if item not in new_list:
+                            new_list.append(item)
+                    segment_matches[sid]["candidates"] = new_list
+
+                    print(f"Segment {sid} reranked by LLM: {[c[0] for c in new_list]}")
+        except Exception as e:
+            _log(job_id, f"Batch LLM reranking failed; preserving raw embedding order. Error: {e}")
+
+    # Phase 3: Assign clips globally — each clip used at most once.
+    # Segments with the strongest match get first pick so clips go where they fit best.
+    used_paths = set()
+    sorted_segments = sorted(
+        segment_matches.items(),
+        key=lambda item: item[1]["candidates"][0][2] if item[1]["candidates"] else 0,
+        reverse=True,
+    )
+
+    for sid, match_data in sorted_segments:
+        available = [
+            (p, m, s) for p, m, s in match_data["candidates"]
+            if str(p) not in used_paths
+        ]
+
+        if not available:
+            resolution[sid] = {"status": "needs_decision"}
+            continue
+
+        final_selections = available[:3]
+        best_match = final_selections[0]
+        p, m, s = best_match
+
+        for path, _, _ in final_selections:
+            used_paths.add(str(path))
+
+        resolution[sid] = {
+            "status": "auto_matched",
+            "candidates": [
+                (str(path), meta.get("duration_seconds") or library.probe_duration(path))
+                for path, meta, score in final_selections
+            ],
+            "score": round(s, 1),
+        }
 
     state["resolution"] = resolution
     state["clips_with_meta"] = clips_with_meta
@@ -316,6 +433,7 @@ def _start_footage_resolution(job_id):
                 _maybe_finalize(job_id)
         except Exception as e:
             _fail(job_id, e)
+            _log(job_id, f"Footage resolution failed: {e}")
 
     threading.Thread(target=worker, daemon=True).start()
 
@@ -446,5 +564,46 @@ def download(filename):
     return send_from_directory(config.OUTPUTS_DIR, filename, as_attachment=True)
 
 
+# ---------- CLI commands ----------
+
+def _cli_debloat():
+    """Remove all uploads, approved action plans, and regenerate vocabulary."""
+    import shutil
+
+    # 1. Wipe uploads/
+    if config.UPLOADS_DIR.exists():
+        count = sum(1 for _ in config.UPLOADS_DIR.iterdir())
+        shutil.rmtree(config.UPLOADS_DIR)
+        config.UPLOADS_DIR.mkdir(exist_ok=True)
+        print(f"🧹 Deleted {count} uploads")
+
+    # 2. Wipe approved_action_plans/
+    plans_dir = config.DATA_DIR / "approved_action_plans"
+    if plans_dir.exists():
+        count = sum(1 for _ in plans_dir.iterdir())
+        shutil.rmtree(plans_dir)
+        plans_dir.mkdir(exist_ok=True)
+        print(f"🧹 Deleted {count} approved action plans")
+    
+    _cli_regen_vocab()
+
+def _cli_regen_vocab():
+    from core import library
+    settings = config.load_settings()
+    folder = settings.get("library_folder", "")
+    if folder:
+        vocab = library.rebuild_action_vocabulary(folder)
+        print(f"✅ Regenerated action_vocabulary.json — {len(vocab)} action phrases")
+    else:
+        print("⚠️  No library folder configured — skipping vocabulary rebuild")
+
+
 if __name__ == "__main__":
-    app.run(debug=True, port=8080)
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "debloat":
+        _cli_debloat()
+    elif len(sys.argv) > 1 and sys.argv[1] == "regen-vocab":
+        _cli_regen_vocab()
+
+    else:
+        app.run(debug=True, port=8080)

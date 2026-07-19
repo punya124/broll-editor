@@ -33,7 +33,7 @@ def score_action(action_text: str, clip_meta: dict, embed_text_fn, cache=None) -
         return 0.0
 
     similarity = cosine_similarity(action_embedding, clip_embedding)
-    floor, ceiling = 0.3, 0.9
+    floor, ceiling = 0.5, 0.9
     normalized = (similarity - floor) / (ceiling - floor)
     return max(0.0, min(1.0, normalized)) * 100.0
 
